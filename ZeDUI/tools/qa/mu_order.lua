@@ -25,7 +25,7 @@
 -- pins, rules and separators in memory (ZeD_ModOrder reloaded from the file); every mod's on and off (Undo changes)
 -- and the load order and map order in memory as found; Style (Lite) as found; every ZeD option as found. It leaves
 -- the Mods screen through Back with nothing waiting (vanilla's Accept of the same list), or by the menu bar's way
--- when that Back would reload Lua. Files the game may rewrite then: mods/default.txt, Lua/pz_modlist_settings.cfg.
+-- when that Back would reload Lua (a change still waiting is undone first: leaving with one now asks Back's question). Files the game may rewrite then: mods/default.txt, Lua/pz_modlist_settings.cfg.
 --
 -- Run (never while the game runs; the runner checks Lua/zedqa.lock itself; any mod list: the live checks turn on
 -- installed mods that are off and can run, and skip what the machine lacks):
@@ -251,9 +251,25 @@ function K.up(view)
     local w = r and ((view == "main" and r.win) or (view == "mods" and r.modsWin)) or nil
     return MM.view == view and w ~= nil and w:isVisible() and true or false
 end
+-- (DK19, MM2, Nov 27 2026: a view left by MM.showView with mods turned on or off now asks Back's question first
+-- (ZeD_MMMods:askLeave) and stays; the script's way out is Undo changes (in memory only, never Discard's Accept),
+-- the question closed, then the move again)
+function K.unhold(w)
+    w = w or K.W()
+    if not w then return end
+    pcall(function()
+        if w.confirm then w:setConfirm(false) end
+        if K.model() and w:changed() then note("Mods: a change was waiting on the way out: Undo changes first (leaving now asks)"); w:revert() end
+    end)
+end
 function K.rescue()
     MM.ctx.open = nil
+    if MM.view == "mods" then K.unhold(K.W()) end
     pcall(MM.showView, "main")
+    if MM.view ~= "main" and MM.view == "mods" then
+        K.unhold(K.W())
+        pcall(MM.showView, "main")
+    end
 end
 function K.model() return ModSelector and ModSelector.instance and ModSelector.instance.model end
 function K.rows() local w = K.W(); local r = {}; if w then pcall(function() r = w:rows() end) end; return r end
@@ -315,10 +331,15 @@ end
 -- Back with nothing waiting (Accept); when that would reload Lua, the screen is left as the menu bar leaves it
 function K.leaveMods(w)
     w = w or K.W()
+    if w and K.model() and w:changed() then K.unhold(w) end
     local why = K.backReloads(w)
     if why then
         note("Mods: left without Back (" .. why .. ": Back would reload Lua and end this script)")
         MM.showView("main")
+        if MM.view == "mods" then
+            check(false, "Mods: left by the menu bar's way with nothing waiting, no question held it", "the band asks " .. tostring(w and w.confirm))
+            K.rescue()
+        end
         return
     end
     w:back()
@@ -785,6 +806,30 @@ function X.folderField()
             "98: open " .. K.b(keep.m9a) .. "; 99: band greyed " .. K.b(s99) .. ", menu greyed " .. K.b(menuGrey))
         check(said == ZeD.tr("UI_ZeD_Folders_HelpFull"), "MO9: a 99th folder made elsewhere while the name field is open: Make says the folders are full",
             "the band says: " .. said)
+        K.file({ "version=2", "next=2", "folder=1|1|" .. F.encode("QA Taken") })
+        K.try("MO9: New folder asked for a name taken meanwhile", function() w:folderAskNew(nil) end)
+        w.field:setText("QA Late")
+    end))
+    after(300, M(function(w)
+        -- (the name comes in from outside while the field is open; the file is written, not read in)
+        K.put(TESTF, { "version=2", "next=3", "folder=1|1|" .. F.encode("QA Taken"), "folder=2|1|" .. F.encode("QA Late") })
+        w.note = nil
+        K.try("MO9: Make pressed after the name was taken", function() w:folderFieldEnter("fnew") end)
+        local taken = K.noteText(w)
+        if w.confirm then w:setConfirm(false) end
+        F.load()
+        w._fTarget = 2
+        K.put(TESTF, { "version=2", "next=3", "folder=1|1|" .. F.encode("QA Taken") })   -- (folder 2 deleted outside)
+        w.note = nil
+        K.try("MO9: Delete on a folder deleted outside", function() w:folderDelete() end)
+        local gone = K.noteText(w)
+        F.load()
+        local _, openWhy = F.setOpen(42, false)
+        local noWrite = ZeD.tr("UI_ZeD_Folders_SayNoWrite")
+        check(taken == ZeD.tr("UI_ZeD_Folders_NameUsed", "QA Late") and gone == ZeD.tr("UI_ZeD_Folders_SayGone") and openWhy == "gone",
+            "MO9: every refusal says its own reason (a name taken meanwhile, a folder gone), not that ModFolders.cfg could not be written",
+            "name taken: \"" .. taken .. "\"; deleted outside: \"" .. gone .. "\"; open on a folder gone: " .. tostring(openWhy)
+            .. ((taken == noWrite or gone == noWrite) and " (the file was blamed)" or ""))
     end))
     after(200, M(function(w)
         local gA, gB = "ZeDQA_gone_a", "ZeDQA_gone_b"
@@ -804,11 +849,15 @@ function X.folderField()
         local ask = tostring(w._bandAsk)
         local n = w:folderView().tot[1] or 0
         local miss = #F.membersOf(1) - n
+        local open = w.confirm == "fdelete"
         K.try("MO12: Delete", function() w:folderDelete() end)
         local raw = K.text(TESTF) or ""
         local left = string.find(raw, "|1\n", 1, true) ~= nil
-        note("MO12: Delete folder asks with the installed mods only (" .. n .. ": \"" .. ask .. "\"); its " .. miss .. " not-installed member line(s) go too (a member line left: "
-            .. K.b(left) .. "), and the question does not say so")
+        local tail = (miss == 1 and ZeD.tr("UI_ZeD_Folders_AskDeleteMissingOne")) or (miss > 1 and ZeD.tr("UI_ZeD_Folders_AskDeleteMissingMany", miss)) or ""
+        local said = miss > 0 and #ask >= #tail and string.sub(ask, #ask - #tail + 1) == tail
+        check(open and miss > 0 and said and not left,
+            "MO12: Delete folder's question says the member lines for mods not installed go too (and they go)",
+            n .. " installed, " .. miss .. " not installed; asked " .. K.b(open) .. ": \"" .. ask .. "\"; a member line left " .. K.b(left))
         K.errCheck("the folder name field and pane")
     end))
 end
@@ -858,8 +907,13 @@ function X.folderLook()
         K.try("MO8: five moved into the folder", function() w:folderMove({ "zqa1", "zqa2", "zqa3", "zqa4", "zqa5" }, 1) end)
         local said = K.noteText(w)
         local moved = #F.membersOf(1) - 3
-        check(said == ZeD.tr("UI_ZeD_Folders_SayMovedMany", moved, "QA Dest"), "MO8: Move to folder's count is the number of mods that moved",
-            "5 picked, 3 already in it, " .. moved .. " moved; the band says: " .. said)
+        w.note = nil
+        K.try("MO8: three taken out, two of them in the folder", function() w:folderMove({ "zqa1", "zqa2", "zqa9" }, nil) end)
+        local out = K.noteText(w)
+        local outN = 5 - #F.membersOf(1)
+        check(moved == 2 and said == ZeD.tr("UI_ZeD_Folders_SayMovedMany", moved, "QA Dest") and outN == 2 and out == ZeD.tr("UI_ZeD_Folders_SayOutMany", outN),
+            "MO8: Move to folder's count is the number of mods that moved (into a folder and out to Unfiled)",
+            "5 picked, 3 already in it, " .. moved .. " moved; the band says: " .. said .. "; 3 taken out, " .. outN .. " were in it; the band says: " .. out)
     end))
     after(200, M(function(w)
         local a = nil
@@ -892,7 +946,7 @@ function X.folderLook()
         end
         w.focusId, w.fsel, w.sel = "mrow:" .. a, nil, a
         w:folderOpenClose(K.fent(w, 1))
-        local r5 = w.focusId == "frow:1" and w.fsel == 1
+        local r5 = w.focusId == "frow:1" and w.fsel == 1 and w.sel == nil
         w:folderOpenClose(K.fent(w, 1))
         check(r1 and r2 and r3 and r4 and r5, "MO13: open and close by the triangle and a double-click, saved in the file; refused while Find has text; Unfiled's state in ZeD's own file; a hidden focused row hands the focus to its folder",
             "triangle " .. K.b(r1) .. ", double-click " .. K.b(r2) .. ", refused with Find " .. K.b(r3) .. ", Unfiled " .. K.b(r4) .. ", focus " .. K.b(r5))
@@ -1228,9 +1282,20 @@ function X.fakeSeps()
         w.note = nil
         if w:orderCheck().firstBad then w:orderDone() end
         local said = K.noteText(w)
-        check(w.page == "order" and said ~= "" and not string.find(string.lower(said), "auto", 1, true),
-            "MO32: Done refused on a red row across separators does not send the player to Auto, which cannot fix it",
-            "page " .. tostring(w.page) .. "; the band says: " .. said)
+        -- (and where Auto can clear it, in one section, the refusal still offers Auto)
+        local I2 = K.fake(2)
+        I2.zqa2.req = { "zqa1" }
+        K.stage(w, { "zqa2", "zqa1" }, I2, nil)
+        w.order = { "zqa2", "zqa1" }
+        w:orderChanged()
+        w.note = nil
+        local red2 = w:orderCheck().firstBad ~= nil
+        if red2 then w:orderDone() end
+        local said2 = K.noteText(w)
+        check(w.page == "order" and said == ZeD.tr("UI_ZeD_Mods_RuleFixHand") and not string.find(string.lower(said), "auto", 1, true)
+            and (not red2 or said2 == ZeD.tr("UI_ZeD_Mods_RuleFix")),
+            "MO32: Done refused on a red row across separators does not send the player to Auto, which cannot fix it (one Auto can fix still names Auto)",
+            "page " .. tostring(w.page) .. "; across separators the band says: " .. said .. "; in one section (red " .. K.b(red2) .. "): " .. said2)
     end))
     after(200, P(function(w)
         K.file({ "version=2", "next=3", "folder=1|1|" .. F.encode("Fold A"), "folder=2|1|" .. F.encode("Fold B"),
@@ -1341,8 +1406,11 @@ function X.fakeOrder()
         check(res.firstBad ~= nil and ds ~= nil and ds.disabled == true, "MO43: a mod whose requirement is not installed is red for good and Done stays greyed",
             "red rows " .. res.nBad .. ", Done greyed " .. K.b(ds and ds.disabled))
         if e and e.hint then
-            check(e.hint ~= ZeD.tr("UI_ZeD_Order_HintNeedsOff", "ZeDQA_absent"), "MO43: the red reason tells a requirement that is not installed from one that is off",
-                "it reads \"" .. tostring(e.hint) .. "\", the words for a mod that is off")
+            local nm = "ZeDQA_absent"
+            pcall(function() nm = O.nameOf(K.model(), w.oInfo, "ZeDQA_absent") end)
+            local want = ZeD.tr("UI_ZeD_Order_HintNeedsMissing", nm)
+            check(e.hint == want and e.hint ~= ZeD.tr("UI_ZeD_Order_HintNeedsOff", nm), "MO43: the red reason tells a requirement that is not installed from one that is off",
+                "it reads \"" .. tostring(e.hint) .. "\" (want \"" .. want .. "\")")
         else
             skip("MO43: the red reason's words", "the row was not drawn in time")
         end

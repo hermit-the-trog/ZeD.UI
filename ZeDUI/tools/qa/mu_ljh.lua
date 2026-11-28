@@ -30,7 +30,8 @@
 -- list write, Host's Start, Reset, Delete world, Delete player, Abort while connecting, Install, Send, Save on any
 -- settings page, the mods step's Next when it would reload Lua, Reset Lua, Quit, any web page.
 -- Files it may write (under Zomboid/Lua): host.ini (a marker line written before Host's Back and Edit settings, which
--- vanilla then writes again; put back as found at the end). Nothing else: the stand-ins live in memory only, the
+-- vanilla then writes again, as it does when the menu bar leaves an idle Host, LJ2; put back as found at the end).
+-- Nothing else: the stand-ins live in memory only, the
 -- Streamer tick is flipped in memory only (never its option), and every list write is stood in for while they live.
 --
 -- Run (never while the game runs; the runner checks Lua/zedqa.lock itself), with $env:ZEDQA_NOSTEAM = "1" first:
@@ -530,17 +531,21 @@ function X.loadReal()
         keep.l24 = nil
         if not w:selected() then skip("LJ24: Rename's band field is a controller stop", "no save here"); skip("LJ25: Rename's band field has a click box", "no save here"); return end
         keep.l24 = true
+        -- (with a controller Rename lands on its field: the flag is set for the one call and put back at once)
+        MM.forceGamepad = true
         K.try("LJ24: Rename asked", function() w:startRename() end)
+        keep.l24land = w.focusId
+        MM.forceGamepad = keep.pad0
     end))
     after(300, LD(function(w)
         if not keep.l24 then return end
-        local stop = nil
-        for _, sp in ipairs(w._specs or {}) do if sp.field == w.renameEntry then stop = sp end end
-        check(stop ~= nil, "LJ24: Rename's band field is a controller stop (the pad keyboard can open on it)",
-            stop and tostring(stop.id) or ("no stop; the hand lands on " .. tostring(w.focusId)))
+        local stop = K.spec(w, "field:rename")
+        check(stop ~= nil and stop.field == w.renameEntry and keep.l24land == "field:rename",
+            "LJ24: Rename's band field is a controller stop (field:rename, the pad keyboard opens on it) and a controller lands on it",
+            "stop " .. tostring(stop and stop.id) .. ", the hand landed on " .. tostring(keep.l24land))
         local h = nil
         pcall(function() h = K.hitOn(w, w.renameEntry) end)
-        check(h ~= nil, "LJ25: Rename's band field has a click box that focuses it",
+        check(h ~= nil and h.id == "load:rename", "LJ25: Rename's band field has a click box that focuses it (load:rename)",
             h and tostring(h.id) or "no click box over the field: once a click lands elsewhere, a click on the field does nothing")
         K.try("LJ24: Rename cancelled", function() w:setConfirm(false) end)
     end))
@@ -626,12 +631,12 @@ function X.loadReal()
         if f > 0 and keep.wn >= f * 2 then note("LJ31: whyNot runs about " .. K.per(keep.wn, f) .. " times a frame: the band and the preview each ask (BME adds its checks to each)") end
         K.errCheck("LJ5-LJ31: Load game, the real saves")
     end))
-    -- LJ16: the preview's Version label
-    after(100, function()
-        local raw = getTextOrNull("Version")
-        check(raw ~= nil, "LJ16: the preview's Version label goes through a translation key",
-            "getTextOrNull(\"Version\") is " .. tostring(raw) .. ", ZeD.tr gives \"" .. tostring(ZeD.tr("Version")) .. "\": a bare word, not a key, so it stays English in every language (German not staged)")
-    end)
+    -- LJ16: the preview's Version label (drawn: read off the stand-in's preview in the next part)
+    after(100, LD(function(w)
+        local key = getTextOrNull("UI_servers_version")
+        keep.l16want = ZeD.textCase(ZeD.trBare("UI_servers_version"))
+        keep.l16key = key ~= nil
+    end))
 end
 
 -- 3: Load game, stand-in saves in memory (never on disk; the list read again after)
@@ -657,17 +662,24 @@ function X.loadFakes()
         local A = keep.fk.A
         local dead = ZeD.tr("UI_ZeD_Saves_NameDead", "Alive Al")
         local shown = K.capHas(list, dead)
-        check(not (A.dead and A.who == "Alive Al"), "LJ9: [stub] with player 1 dead and another character alive, the row and preview do not call the living one dead",
-            "dead " .. tostring(A.dead) .. ", playing as " .. tostring(A.who) .. (shown and (", drawn \"" .. dead .. "\"") or ", that line not drawn"))
+        check(A.dead == true and A.who == "Dead Dan" and not shown, "LJ9: [stub] with player 1 dead and another character alive, the row and preview name player 1 as the dead one, never the living one",
+            "dead " .. tostring(A.dead) .. ", named " .. tostring(A.who) .. (shown and (", drawn \"" .. dead .. "\"") or ", \"" .. dead .. "\" not drawn"))
         keep.l15 = K.capHas(list, ZeD.tr("IGUI_None"))
+        -- LJ16: the preview's Version label is the game's key (the label drawn on its own, as the other rows)
+        local lab = keep.l16want
+        local drawn = false
+        for _, l in ipairs(list) do if lab ~= nil and l == lab then drawn = true end end
+        check(keep.l16key == true and drawn, "LJ16: [stub] the preview's Version label is the game's key UI_servers_version (as Join's), drawn",
+            "UI_servers_version " .. (keep.l16key and "is a key" or "is not a key") .. ", the label \"" .. tostring(lab) .. "\" " .. (drawn and "drawn" or "not drawn") .. " (German not staged)")
         w.sel = keep.fk.B.key; w.focusId = "save:" .. keep.fk.B.key
     end))
     after(300, LD(function(w)
-        local hit, stop = nil, nil
+        local hit = nil
         for _, h in ipairs(w._hits or {}) do if h.id == "load:players" then hit = h end end
-        for _, sp in ipairs(w._specs or {}) do if tostring(sp.id):find("player", 1, true) then stop = sp end end
+        local stop = K.spec(w, "players")
         if not hit then skip("LJ10: [stub] Playing as is a controller stop", "the Playing as box did not draw for the two-character stand-in")
-        else check(stop ~= nil, "LJ10: [stub] Playing as (two living characters) is a controller stop", stop and tostring(stop.id) or "a mouse click box only (load:players): the pad cannot reach it") end
+        else check(stop ~= nil and stop.fn ~= nil and not stop.disabled, "LJ10: [stub] Playing as (two living characters) is a controller stop (players, A opens the list; never pressed)",
+            stop and (tostring(stop.id) .. (stop.disabled and ", greyed" or "")) or "a mouse click box only (load:players): the pad cannot reach it") end
         -- LJ11: Playing as, the save's player 1 and its info stood in for
         local B = keep.fk.B
         local rec = {}
@@ -700,8 +712,9 @@ function X.loadFakes()
         if not okS then skip("LJ12: [stub] New player on an unplayable save", "setSavefilePlayer1 could not be stood in for"); return end
         local wrote = rec[1] == "-1"
         local played = keep.conts ~= c0
-        check(not (wrote and why and not played), "LJ12: [stub] New player on a save that cannot be played does not set a new character first",
-            "reason \"" .. tostring(why) .. "\"; setSavefilePlayer1 " .. (wrote and "called with -1" or "not called") .. "; Play " .. (played and "went on" or "refused in silence")
+        check(why ~= nil and not wrote and not played and item ~= nil and item.disabled == true,
+            "LJ12: [stub] New player on a save that cannot be played does not set a new character, and is greyed in More",
+            "reason \"" .. tostring(why) .. "\"; setSavefilePlayer1 " .. (wrote and "called with -1" or "not called") .. "; Play " .. (played and "went on" or "not reached")
             .. "; New player " .. ((item and item.disabled) and "greyed" or "not greyed") .. " in More")
         K.capStart(w)
     end))
@@ -745,7 +758,7 @@ function X.loadFakes()
     -- LJ18: one click after the keys moved the pick off and back (Play stood in for)
     after(100, LD(function(w)
         local A, B = keep.fk.A, keep.fk.B
-        w._lastClick = nil; w._enterAt = nil
+        w._lastClick = nil; w._lastClickKey = nil; w._enterAt = nil
         local p0 = keep.plays
         local moved, back = nil, nil
         pcall(function()
@@ -758,16 +771,44 @@ function X.loadFakes()
         end)
         local played = keep.plays - p0
         w._lastClick = nil
+        -- (two clicks with no move between still play: Play stood in for)
+        local p1 = keep.plays
+        pcall(function() w:clickSave(B); w:clickSave(B) end)
+        local twice = keep.plays - p1
+        w._lastClick = nil; w._lastClickKey = nil
         if moved == nil or moved == B.key then skip("LJ18: [stub] a click after a key move is not a double click", "the arrow key did not move the pick off the stand-in")
         else
-            check(played == 0, "LJ18: [stub] one click after the keys moved the pick off and back is a pick, not a double click",
-                "the keys moved the pick to " .. tostring(moved) .. " and back to " .. tostring(back) .. "; Play (stood in for) reached " .. played .. " time(s)")
+            check(played == 0 and twice == 1, "LJ18: [stub] one click after the keys moved the pick off and back is a pick, not a double click; two clicks with no move still play",
+                "the keys moved the pick to " .. tostring(moved) .. " and back to " .. tostring(back) .. "; Play (stood in for) reached " .. played .. " time(s), then " .. twice .. " for a plain double click")
         end
-        -- LJ30: the mode heads
-        local headHits, headStop = 0, false
+        -- LJ30: the mode heads are controller rows (A folds, the pick stays); the arrow keys step over them
+        local hid = "head:ZedQA"
+        local hs = K.spec(w, hid)
+        local headHits, others = 0, {}
         for _, h in ipairs(w._hits or {}) do if tostring(h.id):find("load:head:", 1, true) then headHits = headHits + 1 end end
-        for _, sp in ipairs(w._specs or {}) do if tostring(sp.id):find("head", 1, true) then headStop = true end end
-        note("LJ30: the mode heads fold by mouse (" .. headHits .. " click boxes) and " .. (headStop and "have" or "have no") .. " controller stop: the pad cannot fold a group")
+        for _, r in ipairs(w.view or {}) do if r.head and not K.spec(w, "head:" .. tostring(r.mode)) then others[#others + 1] = tostring(r.mode) end end
+        local folded, sel0, kept = false, w.sel, false
+        if hs and hs.fn then
+            w.focusId = hid
+            pcall(hs.fn)
+            folded = w.collapsed["ZedQA"] == true
+            pcall(hs.fn)
+            kept = not w.collapsed["ZedQA"]
+        end
+        -- (Up from the group's first save stays on it, never on its head)
+        local first = nil
+        for _, r in ipairs(w.view or {}) do if r.save and r.save.mode == "ZedQA" and not first then first = r.save.key end end
+        local upOk = false
+        if first then
+            w.sel = first; w.focusId = "save:" .. first
+            pcall(function() w:keyOther(Keyboard.KEY_UP) end)
+            upOk = w.sel == first and string.sub(tostring(w.focusId), 1, 5) ~= "head:"
+        end
+        check(hs ~= nil and #others == 0 and folded and kept and upOk,
+            "LJ30: [stub] every mode head is a controller row (head:<mode>) whose A folds and unfolds the group; the arrow keys step over the heads",
+            "head stop " .. tostring(hs and hs.id) .. ", heads with no stop: " .. ((#others > 0) and K.short(others) or "none") .. "; A folded " .. tostring(folded) .. ", unfolded " .. tostring(kept)
+            .. "; Up from the first save left the hand on " .. tostring(w.focusId) .. " (" .. headHits .. " mouse click boxes on heads)")
+        if sel0 then w.sel = sel0; w.focusId = "save:" .. sel0 end
     end))
     -- LJ6: a real save whose getSaveInfo throws (the stand-ins go with this read)
     after(150, LD(function(w)
@@ -931,17 +972,22 @@ function X.joinOpen()
         K.try("LJ36: the Public tab", function() w:setTab("public") end)
     end))
     after(400, JN(function(w)
-        local hits, stops = {}, {}
+        -- (each click box join:flt:<f>, join:streamer and join:sort:<col> wants its stop tick:flt:<f>, tick:streamer, sort:<col>)
+        local hits, missing = {}, {}
         for _, h in ipairs(w._hits or {}) do
             local id = tostring(h.id)
-            if id:find("join:flt:", 1, true) or id:find("join:sort:", 1, true) or id == "join:streamer" then hits[#hits + 1] = id end
-        end
-        for _, sp in ipairs(w._specs or {}) do
-            local id = tostring(sp.id)
-            if id:find("flt", 1, true) or id:find("sort", 1, true) or id:find("streamer", 1, true) then stops[#stops + 1] = id end
+            local want = nil
+            if id:find("join:flt:", 1, true) == 1 or id == "join:streamer" then want = "tick:" .. string.sub(id, 6)
+            elseif id:find("join:sort:", 1, true) == 1 then want = string.sub(id, 6) end
+            if want then
+                hits[#hits + 1] = id
+                local sp = K.spec(w, want)
+                if not (sp and sp.fn) then missing[#missing + 1] = want end
+            end
         end
         if #hits == 0 then skip("LJ36: the pad reaches the Public filters, sort heads and Streamer mode", "none of them drew on the Public tab")
-        else check(#stops > 0, "LJ36: the pad reaches the Public filters, the sort heads and Streamer mode", #hits .. " click boxes, " .. #stops .. " controller stops (" .. K.short(hits) .. ")") end
+        else check(#missing == 0, "LJ36: the pad reaches every Public filter, sort head and Streamer mode (tick:<id>, sort:<col>; none pressed)",
+            #hits .. " click boxes" .. ((#missing > 0) and (", no controller stop for " .. K.short(missing)) or ", each with its stop")) end
         if not getDebug() then skip("LJ42: in debug, the Refresh label against requestServerList's wait", "not a debug launch")
         else
             local since = getTimestamp() - (MultiplayerUI.startRefreshTime or 0)
@@ -972,7 +1018,7 @@ function X.joinOpen()
         w.fPort:setText("99999999")
         local p = w:serverProblems()
         check(def == "16261" and p.port == nil, "LJ43: the port reads 16261 by default and has no range check", "default " .. def .. ", 99999999 gives " .. tostring(p.port))
-        note("LJ43: a port left empty or not a number after trim would save as 16262 (JN:445), where the form offers 16261 (nothing saved here)")
+        note("LJ43: no range check on the port, as before (Build's note); the save's fallback port is checked on a stand-in server below")
         K.try("LJ43: the form shut", function() w:closeForm() end)
         K.errCheck("LJ32-LJ45: Join, the real lists")
     end))
@@ -1019,16 +1065,37 @@ function X.joinFakes()
             J.lockOk = pcall(function() J.Lock:setPasswordProtected(true) end)
         end)
         if not okB then keep.noFake = "the stand-ins could not be made: " .. tostring(e); return end
+        -- LJ44: the two servers on one address (C1, C2, one account each) get their rows from ZeD's own savedRows, read
+        -- over a stand-in account list (m.accountList swapped for this one call and put back at once)
+        J.accC1 = F.account("zedqa_c"); J.accC2 = F.account("zedqa_c")
+        J.cRows = nil
+        local items = { { item = { type = "server", server = J.C1 } }, { item = { type = "account", server = J.C1, account = J.accC1 } },
+                        { item = { type = "server", server = J.C2 } }, { item = { type = "account", server = J.C2, account = J.accC2 } } }
+        local mk = #keep.stubs
+        if K.stub(m, "accountList", { items = items }) then
+            local okR, rr = pcall(function() return ZeD_MMJoin.savedRows(w) end)
+            if okR then J.cRows = rr end
+        end
+        K.unstubFrom(mk)
+        local c = J.cRows or {}
         J.rows = {
             { kind = "server", key = "s:" .. F.key(J.A), server = J.A, h = 46 },
             { kind = "account", key = "a:" .. F.key(J.A) .. ":zedqa_a", server = J.A, account = J.accA, h = 42 },
             { kind = "server", key = "s:" .. F.key(J.B), server = J.B, h = 46 },
             { kind = "account", key = "a:" .. F.key(J.B) .. ":zedqa_b", server = J.B, account = J.accB, h = 42 },
             { kind = "server", key = "s:" .. F.key(J.One), server = J.One, h = 46 },
-            { kind = "server", key = "s:" .. F.key(J.C1), server = J.C1, h = 46 },
-            { kind = "server", key = "s:" .. F.key(J.C2), server = J.C2, h = 46 },
+            c[1] or { kind = "server", key = "s:" .. F.key(J.C1), server = J.C1, h = 46 },
+            c[3] or { kind = "server", key = "s:" .. F.key(J.C2), server = J.C2, h = 46 },
             { kind = "server", key = "s:" .. F.key(J.D), server = J.D, h = 46 },
         }
+        -- (LJ40: the public server's saved twin with its two accounts, keyed as savedRows keys them)
+        local ax, ay = nil, nil
+        pcall(function() if J.Sv2:getAccounts():size() == 2 then ax = J.Sv2:getAccounts():get(0); ay = J.Sv2:getAccounts():get(1) end end)
+        if ax and ay then
+            J.rows[#J.rows + 1] = { kind = "server", key = "s:" .. F.key(J.Sv2), server = J.Sv2, h = 46 }
+            J.rows[#J.rows + 1] = { kind = "account", key = "a:" .. F.key(J.Sv2) .. ":zedqa_x", server = J.Sv2, account = ax, h = 42 }
+            J.rows[#J.rows + 1] = { kind = "account", key = "a:" .. F.key(J.Sv2) .. ":zedqa_y", server = J.Sv2, account = ay, h = 42 }
+        end
         keep.jMark = #keep.stubs
         keep.jrec = {}
         local function rec(what) return function() keep.jrec[#keep.jrec + 1] = what end end
@@ -1061,7 +1128,7 @@ function X.joinFakes()
         local J = keep.J
         if not J then
             local why = keep.noFake or "the stand-ins did not start"
-            for _, id in ipairs({ "LJ33", "LJ34", "LJ38", "LJ39", "LJ40", "LJ41", "LJ44", "LJ46", "LJ47", "LJ36: the account form's ticks", "LJ37", "LJ25: Join's band field" }) do skip(id .. ": the Join stand-ins", why) end
+            for _, id in ipairs({ "LJ33", "LJ34", "LJ38", "LJ39", "LJ40", "LJ41", "LJ44", "LJ46", "LJ47", "LJ36: the account form's ticks", "LJ37", "LJ25: Join's band field", "LJ43: the port's fallback on save" }) do skip(id .. ": the Join stand-ins", why) end
             return
         end
         -- LJ46: the details pane
@@ -1079,31 +1146,51 @@ function X.joinFakes()
             check(#bad == 0, "LJ46: [stub] details: Password and Whitelist \"-\" until the server answers, the last wipe in days, the description's tags stripped, the mods listed",
                 (#bad == 0) and "a stand-in server, never asked" or K.short(bad))
         end
-        -- LJ44: two saved servers on one address
-        local k1, k2 = "s:" .. F.key(J.C1), "s:" .. F.key(J.C2)
-        w.sel = k2
-        local r = w:selectedRow(w:savedRows())
-        check(k1 == k2 and r ~= nil and r.server == J.C1, "LJ44: [stub] two saved servers on one address share the row key, so the second picks the first",
-            "key " .. k1 .. (r and (", the pick lands on \"" .. tostring(r.server:getName()) .. "\"") or ", nothing picked"))
-        if k1 == k2 then note("LJ44: the second of two saved servers on one address cannot be picked, edited or removed from the list (JN:59, 141, 165)") end
+        -- LJ44: two saved servers on one address, keyed by ZeD's own savedRows (read over a stand-in list, set up above)
+        local cr = J.cRows
+        if not (cr and #cr == 4) then
+            check(false, "LJ44: [stub] two saved servers on one address each get their own rows", "savedRows over the stand-in list gave " .. tostring(cr and #cr) .. " rows")
+        else
+            local k1, k2, ka2 = cr[1].key, cr[3].key, cr[4].key
+            local base = F.key(J.C1)
+            w.sel = k2
+            local r = w:selectedRow(w:savedRows())
+            -- (Remove asked on the second: its question keeps the second; Cancel, never pressed)
+            w._lastClick = nil
+            w:setConfirm("delServer")
+            local target = w._cRow
+            w:setConfirm(false)
+            w.sel = ka2
+            local ra = w:selectedRow(cr)
+            check(k1 == "s:" .. base and k2 == "s:" .. base .. "#2" and ka2 == "a:" .. base .. "#2:zedqa_c" and cr[4].server == J.C2
+                and r ~= nil and r.server == J.C2 and target ~= nil and target.server == J.C2 and ra ~= nil and ra.account == J.accC2,
+                "LJ44: [stub] two saved servers on one address get their own rows (the second keyed #2, its account under it): the second can be picked and Remove asks on it",
+                "keys " .. tostring(k1) .. ", " .. tostring(k2) .. ", " .. tostring(ka2) .. "; the pick lands on \"" .. tostring(r and r.server:getName()) .. "\"; Remove's target \""
+                .. tostring(target and target.server and target.server:getName()) .. "\"")
+        end
         -- LJ33: a click on another row while Remove asks
+        w.sel = nil
         w._lastClick = nil
         w:pick(J.rows[1])
         w:setConfirm("delServer")
+        local t0 = w._cRow
         w._lastClick = nil
         w:pick(J.rows[3])
         local moved = w.sel == J.rows[3].key
-        check(not moved, "LJ33: [stub] a click on another row while Remove asks does not change what Remove removes",
-            moved and "the pick moved to \"ZedQA B\" under the question opened on \"ZedQA A\": Remove now removes B (Remove never pressed)" or "the pick stayed on the server asked about")
+        local kept = w._cRow == J.rows[1] and t0 == J.rows[1]
+        check(not moved and kept, "LJ33: [stub] a click on another row while Remove asks does not change what Remove removes (the question keeps its row)",
+            (moved and "the pick moved to \"ZedQA B\" under the question opened on \"ZedQA A\" (Remove never pressed)" or "the pick stayed on the server asked about")
+            .. "; the question's row " .. tostring(w._cRow and w._cRow.key))
         w:setConfirm(false)
-        -- LJ34: a double click on another account under the password question
+        -- LJ34: a double click (and A) on another account under the password question
         w._pwdFor = { server = J.A, account = J.accA }
         w:setConfirm("pwd")
         local n0 = #keep.jrec
         w._lastClick = nil
         w:pick(J.rows[4]); w:pick(J.rows[4])
+        pcall(function() w:connectOrOpen(J.rows[4]) end)
         local got = #keep.jrec - n0
-        check(got == 0, "LJ34: [stub] under the password question a double click on another account does not connect it",
+        check(got == 0, "LJ34: [stub] under the password question neither a double click nor A on another account connects it",
             (got > 0) and ("it reached " .. tostring(keep.jrec[#keep.jrec]) .. " (connect stood in for)") or "no connect")
         w:setConfirm(false)
         w._lastClick = nil
@@ -1141,11 +1228,38 @@ function X.joinFakes()
                 if sv == J.Pub then return { type = "server", server = J.Sv2 } end
                 return MultiplayerUI.getServerFeatured(self, sv)
             end)
+            w.tab = "public"; w.focusId = nil
             pcall(function() w:connectPublic(J.Pub) end)
-            local tab, sel = w.tab, w.sel
+            local tab, sel, foc = w.tab, w.sel, w.focusId
             K.unstub(m, "getServerFeatured")
-            note("LJ40: [stub] Connect on a public server saved with two accounts jumps to the Saved tab on it (tab " .. tostring(tab) .. ", pick " .. tostring(sel)
-                .. ") with no account picker and no word why; connects " .. (#keep.jrec - n0) .. " (vanilla opens ISMPSelectAccount, MPUI:1480-1489)")
+            local wantSel = "a:" .. F.key(J.Sv2) .. ":zedqa_x"
+            local wantFoc = nil
+            for i, rr in ipairs(w:savedRows()) do if rr.key == wantSel and not wantFoc then wantFoc = "row:" .. i end end
+            local conns = #keep.jrec - n0
+            check(tab == "saved" and sel == wantSel and wantFoc ~= nil and foc == wantFoc and conns == 0,
+                "LJ40: [stub] Connect on a public server saved with two accounts lands on Saved with its first account picked and the hand on it (nothing connected)",
+                "tab " .. tostring(tab) .. ", pick " .. tostring(sel) .. ", hand " .. tostring(foc) .. " (wanted " .. tostring(wantFoc) .. "), connects " .. conns)
+            -- (saved with no account: the account form, connecting when saved; closed, nothing saved)
+            K.stub(m, "getServerFeatured", function(self, sv)
+                if sv == J.Pub then return { type = "server", server = J.C1 } end
+                return MultiplayerUI.getServerFeatured(self, sv)
+            end)
+            local n1 = #keep.jrec
+            w.tab = "public"
+            pcall(function() w:connectPublic(J.Pub) end)
+            K.unstub(m, "getServerFeatured")
+            local f = w.form
+            local formOk = f ~= nil and f.account == nil and f.connectAfter == true
+            local nC1 = -1
+            pcall(function() nC1 = J.C1:getAccounts():size() end)
+            if nC1 ~= 0 then skip("LJ40: [stub] Connect on a public server saved with no account", "the stand-in C1 has " .. nC1 .. " accounts")
+            else
+                check(w.page == "account" and f ~= nil and f.server == J.C1 and formOk and #keep.jrec == n1,
+                    "LJ40: [stub] Connect on a public server saved with no account opens the account form for it (closed, nothing saved)",
+                    "page " .. tostring(w.page) .. ", form for " .. tostring(f and f.server and f.server:getName()) .. ", connect after " .. tostring(formOk) .. ", writes " .. (#keep.jrec - n1))
+            end
+            pcall(function() if w.page ~= "list" then w:closeForm() end end)
+            note("LJ40: a new account made from Connect on a public server is not kept on the saved server (Build's known gap; not saved here)")
             w.tab = "saved"
         end
         -- LJ47: Save on a locked public server (the list write stood in for)
@@ -1165,14 +1279,35 @@ function X.joinFakes()
         if keep.l25j and w.field:isVisible() then
             local h = nil
             pcall(function() h = K.hitOn(w, w.field) end)
-            local stop = nil
-            for _, sp in ipairs(w._specs or {}) do if sp.field == w.field then stop = sp end end
-            check(h ~= nil, "LJ25: Join's band password field has a click box that focuses it",
+            local stop = K.spec(w, "field:band")
+            check(h ~= nil and h.id == "join:f:band", "LJ25: Join's band password field has a click box that focuses it (join:f:band)",
                 h and tostring(h.id) or ("no click box over it (it has the controller stop " .. tostring(stop and stop.id) .. ")"))
         else
             skip("LJ25: Join's band password field has a click box", "the server password question did not open")
         end
         w:setConfirm(false)
+        -- LJ43: a port that is not a number saves as 16261, the form's own default (a stand-in server, the field
+        -- checks stood in for so the fallback is reached; its list write stood in for)
+        local svP = nil
+        pcall(function() svP = F.server("ZedQA port", "203.0.113.48", 16999) end)
+        if not svP then skip("LJ43: [stub] the port's fallback on save", "the stand-in server could not be made")
+        else
+            local n0p = #keep.jrec
+            local okP, eP = pcall(function()
+                w:openServerForm(svP)
+                w.fPort:setText("")
+                K.stub(w, "serverProblems", function() return {} end)
+                w:saveServerForm()
+            end)
+            K.unstub(w, "serverProblems")
+            pcall(function() if w.page ~= "list" then w:closeForm() end end)
+            local port = nil
+            pcall(function() port = svP:getPort() end)
+            local wrote = keep.jrec[n0p + 1]
+            check(okP and tonumber(port) == 16261 and wrote == "updateServerToAccountList", "LJ43: [stub] a port that reads as no number saves as 16261, the port the form offers (never 16262)",
+                (okP and "" or (tostring(eP) .. "; ")) .. "saved port " .. tostring(port) .. ", list write " .. tostring(wrote) .. " (stood in for)")
+            w.sel = nil; w.tab = "saved"
+        end
         -- LJ38: editing an account (the list write stood in for)
         local acc = F.account("zedqa_edit")
         local okA = pcall(function() acc:encryptPwd("zedqa-pass"); acc:setSavePwd(true) end)
@@ -1209,15 +1344,18 @@ function X.joinFakes()
     after(300, JN(function(w)
         local J = keep.J
         if not J then return end
-        local rem, stop = false, nil
-        for _, h in ipairs(w._hits or {}) do if h.id == "join:remember" then rem = true end end
-        for _, sp in ipairs(w._specs or {}) do
-            local id = tostring(sp.id)
-            if id:find("remember", 1, true) or id:find("relay", 1, true) then stop = sp end
+        local rem, relay = false, false
+        for _, h in ipairs(w._hits or {}) do
+            if h.id == "join:remember" then rem = true end
+            if h.id == "join:relay" then relay = true end
         end
+        local sRem, sRelay = K.spec(w, "tick:remember"), K.spec(w, "tick:relay")
         note("LJ39: a public server's new account (connect after, never kept) still shows Remember password: " .. tostring(rem))
         if not rem then skip("LJ36: the pad reaches Remember password on the account form", "the tick did not draw")
-        else check(stop ~= nil, "LJ36: the pad reaches Remember password (and Use Steam relay on Steam) on the account form", stop and tostring(stop.id) or "a mouse click box only, no controller stop") end
+        else
+            check(sRem ~= nil and sRem.fn ~= nil and ((not relay) or sRelay ~= nil), "LJ36: the pad reaches Remember password (tick:remember; and Use Steam relay, tick:relay, on Steam) on the account form",
+                "remember " .. tostring(sRem and sRem.id) .. (relay and (", relay " .. tostring(sRelay and sRelay.id)) or ", relay not drawn (not Steam)"))
+        end
         local p = {}
         pcall(function() p = w:accountProblems() end)
         note("LJ37: a new account with an empty password is refused: \"" .. tostring(p.pwd) .. "\" (vanilla's form allows none, EA:248-257)")
@@ -1290,11 +1428,11 @@ function X.connecting()
         local list = K.capStop()
         local c = keep.cts
         local named = K.capHas(list, "ZedQA stand-in server") and K.capHas(list, ZeD.tr("UI_ZeD_Join_AsUser", "zedqa"))
-        local stop = nil
-        for _, sp in ipairs(w._specs or {}) do if sp.field == w.code or tostring(sp.id):find("code", 1, true) then stop = sp end end
+        local stop = K.spec(w, "field:code")
         local shown = w.code:isVisible()
         if not shown then skip("LJ49: [stub] the authenticator code field is a controller stop", "the code field did not show")
-        else check(stop ~= nil, "LJ49: [stub] the authenticator code field is a controller stop", stop and tostring(stop.id) or "it takes the keyboard (focused) but has no stop the pad can reach (never sent)") end
+        else check(stop ~= nil and stop.field == w.code, "LJ49: [stub] the authenticator code field is a controller stop (field:code, A opens the pad keyboard; never sent)",
+            stop and tostring(stop.id) or "it takes the keyboard (focused) but has no stop the pad can reach (never sent)") end
         pcall(function() c.googleAuthPopup:setVisible(false) end)
         pcall(function() if w.code:isFocused() then w.code:unfocus() end; w.code:setText("") end)
         -- the try fails (vanilla's own handler, no connection behind it)
@@ -1362,9 +1500,10 @@ function X.bootstrap()
         local list = K.capStop()
         local b = BootstrapConnectPopup.instance
         b.host, b.port = keep.bh0[1], keep.bh0[2]
-        local shown = K.capHas(list, "203.0.113.52 : 16261")
+        local shown = K.capHas(list, "203.0.113.52")
         check(not shown, "LJ35: the invite view's heading keeps the server's address out of sight (vanilla's shows none)",
-            shown and "it prints host : port (a stand-in address) whatever Streamer mode says" or "no address drawn")
+            shown and "it prints the stand-in address whatever Streamer mode says" or "no address drawn")
+        note("LJ35: Build's known gap: the invite view now drops host : port in every mode, not only in Streamer mode (as vanilla's shows none; one line would keep it outside Streamer mode)")
         K.try("LJ52: Back", function() w:back() end)
     end))
     waitFor(function() return keep.noBoot or MM.view == "main" end, 3000, function(met)
@@ -1774,7 +1913,7 @@ function X.hostLeave()
         local c = keep.c
         local vis, x = false, 0
         pcall(function() vis = c:getIsVisible(); x = c:getX() end)
-        check(met and not (vis and x <= -10000), "LJ2: leaving an idle Host by the menu bar puts the game's host screen away",
+        check(met and not vis, "LJ2: leaving an idle Host by the menu bar puts the game's host screen away (onViewLeft hides it)",
             (vis and x <= -10000) and ("the game's host screen stays shown, parked at x " .. math.floor(x) .. ": it keeps following its server off the screen (view " .. tostring(MM.view) .. ")")
             or ("shown " .. tostring(vis) .. ", x " .. math.floor(x) .. ", view " .. tostring(MM.view)))
         note("LJ2: the busy cases (Host launching, Connecting) are not staged: they start a server or a connection")

@@ -554,7 +554,7 @@ function X.boot()
         end
         check(MM.ctx.hot ~= "zedqa:dk2", "DK2: once it is open the pointer runs again", "hot box " .. tostring(MM.ctx.hot))
         check(d.to == "newgame", "DK2: the pad's D-pad does nothing while the monitor switches on",
-            "the main window's focus moved from newgame to " .. tostring(d.to) .. " in the first 0.47 s: MM.joyDir and MM.joyDown have no switch-on test (only the pointer waits)")
+            "the main window's focus moved from newgame to " .. tostring(d.to) .. " in the first 0.47 s: MM.joyDir answered past its MM.poweringOn test (ZeD_MainMenu.lua)")
         MM.forceGamepad = keep.pad0
         K.main().focusId = keep.f2
     end)
@@ -711,9 +711,10 @@ function X.quitQ()
         check(r.confirm == true and r.view == "main", "DK13: Exit asks in the main window's band", "view " .. tostring(r.view))
         check(r.after == false, "DK13: the quit question answered Cancel (never Exit)")
         note("DK13: (director) the quit question puts the pad on " .. tostring(r.f) .. " (Exit): pad A, A quits from the band")
-        local exitW = getText("IGUI_Exit")
-        check(r.a2 ~= exitW, "DK14: with the pad on Cancel the question's footer no longer says A " .. exitW,
-            "the footer says A " .. tostring(r.a2) .. " with the focus on Cancel (A " .. tostring(r.a1) .. " on Exit)")
+        local exitW, cancelW = getText("IGUI_Exit"), getText("UI_Cancel")
+        local want1 = (r.f == "confirm:no") and cancelW or exitW
+        check(r.a2 == cancelW and r.a1 == want1, "DK14: the question's footer names the focused answer: A " .. exitW .. " on Exit, A " .. cancelW .. " on Cancel",
+            "the footer says A " .. tostring(r.a2) .. " with the focus on Cancel (A " .. tostring(r.a1) .. " on " .. tostring(r.f) .. ")")
         check(cool == false, "DK15: no quit cooldown at the main menu", "isQuitCooldown " .. tostring(cool))
         note("DK15: the question's Exit is never greyed by the cooldown (greyed now: " .. tostring(r.yesGrey == true) .. "), while the band's Quit is; MM.act.quit returns silently while cooling")
     end)
@@ -745,12 +746,32 @@ function X.closeBox()
         check(not r1 and not r2 and MM.view == "main", "DK17: Return and the arrow keys on the main window do nothing", "handled " .. tostring(r1) .. " " .. tostring(r2))
         note("DK17: (director, keyboard play) the main window has no key of its own; MM.keyRelease's comment says Return plays or goes on (drift); the arrows move only the bare desktop's icons")
     end)
+    -- DK18: the glass's own frame run once with the power button hovered past the delay (the pointer's 100 ms update
+    -- would take the hover back, so it is set and read inside one call); its drawing stood in for, the hint caught
     after(200, function()
         local g = MM.root.glass
-        local pr = g and g._hits and g._hits[1]
         local deskHit = MM.root._hits and MM.root._hits[1]
-        check(pr ~= nil and pr.id == "power", "DK18: the power button's hint points at the button",
-            "the glass has no hit boxes of its own (glass._hits " .. tostring(g and g._hits) .. "); the power hit is the desk's (" .. tostring(deskHit and deskHit.id) .. "), so the hint falls back to the pointer's place")
+        if not (g and g.prerender) then check(false, "DK18: the power button's hint points at the button", "no glass on the desk"); return end
+        local A = ZeD.Atoms
+        local s = { drawGlass = MM.drawGlass, dip = MM.dipAlpha, dbg = MM.debugHits, hint = A.drawHintBox, hot = MM.ctx.hot, st = g._powerHint }
+        local cap = {}
+        MM.drawGlass = function() end
+        MM.dipAlpha = function() return 0 end
+        MM.debugHits = nil
+        A.drawHintBox = function(p, text, x, y, rect, side, key) cap.n = (cap.n or 0) + 1; cap.rect, cap.side = rect, side end
+        MM.ctx.hot = "power"
+        g._powerHint = { hoverKey = "power", hoverSince = 0, hoverWarm = true }
+        local ok, e = pcall(function() g:prerender() end)
+        MM.drawGlass, MM.dipAlpha, MM.debugHits, A.drawHintBox = s.drawGlass, s.dip, s.dbg, s.hint
+        MM.ctx.hot = s.hot
+        g._powerHint = s.st
+        local pr = cap.rect
+        local onBtn = pr ~= nil and deskHit ~= nil and deskHit.id == "power"
+            and math.abs(pr.x + g:getAbsoluteX() - deskHit.x) <= 1 and math.abs(pr.y + g:getAbsoluteY() - deskHit.y) <= 1
+            and pr.w == deskHit.w and pr.h == deskHit.h
+        check(ok and pr ~= nil and pr.id == "power" and onBtn, "DK18: the power button's hint points at the button",
+            (not ok and tostring(e)) or ("hint drawn " .. tostring(cap.n) .. " times, at " .. (pr and (K.n(pr.x) .. "," .. K.n(pr.y)) or "the pointer's place (no rect)")
+            .. "; the desk's power hit " .. (deskHit and (tostring(deskHit.id) .. " at " .. K.n(deskHit.x) .. "," .. K.n(deskHit.y)) or "none")))
     end)
 end
 function X.powerPast()
@@ -771,7 +792,7 @@ function X.powerPast()
         check(MM.view == "main" and w.confirm == true, "DK19: the power button leaves the notepad (no Save changes?) and asks to quit", "view " .. tostring(MM.view))
         check(d ~= nil and d.text == "zedqa dk19 words", "DK19: the notepad's unsaved words are kept as a draft on the way", "draft " .. K.q(d and d.text))
         w:setConfirm(false)
-        note("DK19: the power button, File > Exit and the menu bar leave any view through MM.showView, past its own leave question: the notepad keeps a draft; the Workshop and the description editor keep nothing (DK58, DK59)")
+        note("DK19: the notepad has no leave question of its own (it keeps a draft); the Workshop and the description editor ask theirs on the power button and the menu bar (checked with DK58 and DK59)")
         D.npReset()
         K.errCheck("the main window")
     end)
@@ -819,7 +840,7 @@ function X.barRows()
         local bottom = d:getAbsoluteY() + d:getHeight()
         check(d:isVisible() and bottom <= L.ty + L.th + 1, "DK21: the ZeD menu with its About block ends on the monitor's tube",
             "its foot at " .. K.n(bottom) .. ", the tube's at " .. K.n(L.ty + L.th) .. " (" .. K.screen() .. ", scale " .. tostring(ZeD.T and ZeD.T.scale) .. ")")
-        note("DK21: a menu bar pull-down is never cut or scrolled (dropScrollMax " .. tostring(MM.ctx.dropScrollMax) .. "): its room test runs for pop-ups only (ZeD_MainMenu.lua, the \"if not pos\" block); at a small screen or with Large text the ZeD menu can run past the tube (checked above at " .. K.screen() .. ")")
+        note("DK21: a menu bar pull-down too tall for the tube is cut to it and scrolls (here dropScrollMax " .. tostring(MM.ctx.dropScrollMax) .. " at " .. K.screen() .. ")")
         MM.ctx.open = nil
     end)
     after(250, function()
@@ -1076,7 +1097,26 @@ function X.pastiesMake()
         for _, c in ipairs(cs) do if c.left then left = left + 1 end end
         for _, it in ipairs(MM.leftItems()) do if not (it.hide and it.hide()) then want = want + 1 end end
         check(left == want, "DK30: every left-column item and every Pastie note has its place on the desk", left .. " of " .. want .. " laid out at " .. K.screen() .. ", scale " .. tostring(ZeD.T and ZeD.T.scale))
-        note("DK30: once the left column would reach the right block, every later item (Mail, Documents, every Pastie note, moved ones too) is dropped from the desk; at UI scale 2, Large text or a narrow tube (not stageable at this size)")
+        -- DK30 past the room: the layout alone, with 60 stand-in left items (more than any tube holds in columns);
+        -- the real list is back in the same call
+        local L2 = MM.layout()
+        local items0 = MM.leftItems
+        local many = {}
+        for i = 1, 60 do many[i] = { id = "zedqa" .. i, label = "QA " .. i, open = function() end } end
+        MM.leftItems = function() return many end
+        local okC, cs2 = pcall(MM._deskCells, L2)
+        MM.leftItems = items0
+        local seen, off = 0, 0
+        if okC then
+            for _, c in ipairs(cs2 or {}) do
+                if c.left then
+                    seen = seen + 1
+                    if c.x < L2.tx - 1 or c.y < L2.ty - 1 or c.x + c.w > L2.tx + L2.tw + 1 or c.y + c.h > L2.ty + L2.th + 1 then off = off + 1 end
+                end
+            end
+        end
+        check(okC and seen == 60 and off == 0, "DK30: with more left items than the columns hold, every one stays on the desk and on the tube",
+            okC and (seen .. " of 60 laid out, " .. off .. " off the tube at " .. K.screen()) or tostring(cs2))
     end)
 end
 function X.pastiesSave()
@@ -1276,8 +1316,8 @@ function X.trash()
         note("DK13: (director) the Trash's question puts the pad on " .. tostring(r.f1) .. " (Exit)")
         check(r.no == false and r.f2 == "empty" and r.v == "trash", "DK40: B answers Cancel and goes back to Empty trash", tostring(r.no) .. ", " .. tostring(r.f2))
         check(r.esc == false and r.v2 == "trash" and r.v3 == "desktop", "DK40: Escape cancels the question, a second Escape closes the Trash", tostring(r.v2) .. ", then " .. tostring(r.v3))
-        local exitW = getText("IGUI_Exit")
-        check(r.a2 ~= exitW, "DK14: with the pad on Cancel the Trash's footer no longer says A " .. exitW, "the footer says A " .. tostring(r.a2) .. " with the focus on Cancel")
+        local cancelW = getText("UI_Cancel")
+        check(r.a2 == cancelW, "DK14: with the pad on Cancel the Trash's footer says A " .. cancelW, "the footer says A " .. tostring(r.a2) .. " with the focus on Cancel")
         skip("DK40: the quit itself", "never pressed")
         MM.showView("main")
     end)
@@ -1339,9 +1379,31 @@ function X.wall()
             if string.sub(tostring(s.id), 1, 3) == "sw:" then n = n + 1; maxB = math.max(maxB, s.y + s.h) end
         end
         local stripY = w:getHeight() - w:footerHeight() - MM.bandH()
-        check(n == 25 and maxB <= stripY + 1, "DK44: every one of the 25 swatches sits above the Desktop window's band",
-            n .. " swatches, the last one's foot at " .. K.n(maxB) .. ", the band at " .. K.n(stripY) .. " (" .. K.screen() .. ")")
-        note("DK44: the window's height is cut to the tube with no scroll while its groups always draw in full: with Large text or a short tube the last rows would run under the band")
+        keep.dk44 = { n = n, stripY = stripY, body = w._body }
+        if not w._body then
+            check(n == 25 and maxB <= stripY + 1, "DK44: every one of the 25 swatches sits above the Desktop window's band (the body needs no scroll here)",
+                n .. " swatches, the last one's foot at " .. K.n(maxB) .. ", the band at " .. K.n(stripY) .. " (" .. K.screen() .. ")")
+            return
+        end
+        -- a short tube: the body scrolls; the pad on the last swatch must scroll it into sight above the band
+        local last = nil
+        for _, s in ipairs(w._specs or {}) do if string.sub(tostring(s.id), 1, 3) == "sw:" then last = s.id end end
+        keep.dk44.last = last
+        keep.dk44.pad = MM.forceGamepad
+        MM.forceGamepad = true
+        w.scroll, w._follow, w.focusId = 0, nil, last
+    end)
+    after(300, function()
+        local w, r = K.win("desktopPick"), keep.dk44
+        if r.body then
+            local sp = K.spec(w, r.last)
+            local vy = ZeD.T.titleBarH
+            check(r.n == 25 and r.body.max > 0 and sp ~= nil and (w.scroll or 0) > 0 and sp.y >= vy - 1 and sp.y + sp.h <= r.stripY + 1,
+                "DK44: on a short tube the Desktop window's body scrolls and the pad's last swatch is scrolled into sight above the band",
+                r.n .. " swatches, scroll room " .. K.n(r.body.max) .. ", scrolled " .. K.n(w.scroll) .. ", the last swatch at " .. (sp and (K.n(sp.y) .. " to " .. K.n(sp.y + sp.h)) or "none") .. ", the band at " .. K.n(r.stripY) .. " (" .. K.screen() .. ")")
+            w.focusId, w.scroll = nil, 0
+            MM.forceGamepad = r.pad
+        end
         MM.showView("desktop")
     end)
     after(200, function() MM.openDesktopPick() end)
@@ -1483,7 +1545,11 @@ function X.notepad()
             local orig = MainScreen.onMenuItemMouseDownMainMenu
             local stub = function() keep.c51.n = keep.c51.n + 1 end
             MainScreen.onMenuItemMouseDownMainMenu = stub
-            if MainScreen.onMenuItemMouseDownMainMenu == stub then pcall(MM.act.continue) end
+            -- (never pressed under a window that can hold the move back for a leave question: its later answer
+            -- would run the real Continue past the stand-in)
+            local aw = MM.activeWindow and MM.activeWindow()
+            keep.c51.held = aw ~= nil and aw.askLeave ~= nil
+            if MainScreen.onMenuItemMouseDownMainMenu == stub and not keep.c51.held then pcall(MM.act.continue) end
             MainScreen.onMenuItemMouseDownMainMenu = orig
             keep.c51.back = MainScreen.onMenuItemMouseDownMainMenu == orig
         end
@@ -1494,7 +1560,7 @@ function X.notepad()
         local d = N.draft()
         if c.has then
             check(c.back == true, "DK51: vanilla's item handler is back as found")
-            check(c.n == 1 and MM.view == "notepad", "DK51: File > Continue goes straight to vanilla's item, past MM.showView", c.n .. " call, view " .. tostring(MM.view))
+            check(c.n == 1 and MM.view == "notepad", "DK51: File > Continue from the notepad runs vanilla's item once (stood in for)", c.n .. " call, view " .. tostring(MM.view) .. (c.held and ", not pressed: the notepad has a leave question now" or ""))
         else
             note("DK51: no Continue save here: the menu bar's start is read from the code (fire runs vanilla's item, never MM.showView)")
         end
@@ -1717,12 +1783,62 @@ function X.workshop()
             keep.ws.title = why or tostring(w.titleE:isFocused())
             pcall(function() w.titleE:unfocus() end)
         end
+        -- DK59: left by the menu bar (MM.showView) with the edits still unsaved: Back's question first, the move held
+        w.unsaved = { zedqa = true }
+        MM.showView("main")
+        keep.ws.mb = { view = MM.view, c = w.confirm, f = w.focusId, go = w._leaveGo ~= nil }
+    end)
+    after(200, function()
+        if keep.noWs then return end
+        local w, r = K.win("workshop"), keep.ws
+        local mb = r.mb
+        check(mb.view == "workshop" and mb.c == "leave" and mb.go, "DK59: leaving the Workshop by the menu bar with unsaved edits asks Back's question first",
+            "view " .. tostring(mb.view) .. ", question " .. tostring(mb.c) .. ", move held " .. tostring(mb.go))
+        note("DK13: the Workshop's menu bar question puts the pad on " .. tostring(mb.f) .. " (Keep editing)")
+        -- Keep editing: stays, the edits kept, the move forgotten
+        local why = (w.confirm == "leave") and K.press(w, "confirm:cancel") or "no question open"
+        check(why == nil and MM.view == "workshop" and not w.confirm and w._leaveGo == nil and K.count(w.unsaved) > 0,
+            "DK59: Keep editing stays in the Workshop with its edits and forgets the move",
+            tostring(why) .. "; view " .. tostring(MM.view) .. ", question " .. tostring(w.confirm) .. ", " .. K.count(w.unsaved) .. " folders unsaved")
+        if w.confirm then w:setConfirm(false) end
+        -- DK19: the power button (the desk's own hit, MM.act.askQuit) with the edits unsaved: the Workshop asks first,
+        -- the quit question waits on its answer
+        local hit = MM.root._hits and MM.root._hits[1]
+        local fn = (hit and hit.id == "power" and hit.fn) or MM.act.askQuit
+        w.unsaved = { zedqa = true }
+        K.try("DK19: the power button on the Workshop", fn)
+        r.pw = { view = MM.view, c = w.confirm, q = K.main().confirm == true, go = w._leaveGo ~= nil }
+    end)
+    after(200, function()
+        if keep.noWs then return end
+        local w, r = K.win("workshop"), keep.ws
+        local pw = r.pw
+        check(pw.view == "workshop" and pw.c == "leave" and pw.go and not pw.q, "DK19: the power button on the Workshop with unsaved edits asks Back's question before the quit question",
+            "view " .. tostring(pw.view) .. ", Workshop question " .. tostring(pw.c) .. ", quit question " .. tostring(pw.q))
+        if pw.q then K.main():setConfirm(false) end
+        -- Discard changes goes on with the held move: the main window's quit question (answered Cancel, never Exit)
+        local why = (w.confirm == "leave") and K.press(w, "confirm:no") or "no question open"
+        r.dis = { why = why, view = MM.view, q = K.main().confirm == true, unsaved = K.count(w.unsaved) }
+        if K.main().confirm then K.main():setConfirm(false) end
+        if w.confirm then w:setConfirm(false) end
+        w.unsaved = {}
+        check(why == nil and r.dis.view == "main" and r.dis.q and r.dis.unsaved == 0, "DK19: Discard changes drops the edits and goes on to the quit question (answered Cancel)",
+            tostring(why) .. "; view " .. tostring(r.dis.view) .. ", quit question " .. tostring(r.dis.q) .. ", " .. r.dis.unsaved .. " folders unsaved")
+        if MM.view ~= "main" then MM.leaveRun(function() MM.showView("main") end) end
+    end)
+    after(250, function() if not keep.noWs then MM.showView("workshop") end end)
+    waitFor(function() return keep.noWs or K.up("workshop") end, 3000, function(met)
+        if keep.noWs then return end
+        local w = K.win("workshop")
         -- an upload waiting on Steam (set by hand: nothing is sent), left by the menu bar and come back to. Its stage
         -- is "create" (the first wait, ZeD_MainMenuWorkshop.lua:362), not "send": the send stage's progress bar asks
         -- the picked item for getUpdateProgress every frame (:829), and a faked send has no Steam item behind it, so
         -- each frame raised a caught error. Both stages are the same busy to onShow, which is what DK58 checks.
+        -- (an upload waiting lets the move through with no question: the window keeps its form for Steam's answer)
+        w.unsaved = { zedqa = true }
         w.busy = { stage = "create", t0 = MM.now() }
         MM.showView("main")
+        keep.ws.left58 = MM.view
     end)
     after(250, function() if not keep.noWs then MM.showView("workshop") end end)
     after(300, function()
@@ -1733,12 +1849,13 @@ function X.workshop()
         w.unsaved = {}
         check(r.c == "leave", "DK59: the Workshop's Back with unsaved edits asks first", tostring(r.c))
         note("DK13: the Workshop's leave question puts the pad on " .. tostring(r.f) .. " (Keep editing)")
+        check(r.left58 == "main", "DK58: with an upload waiting the menu bar leaves the Workshop with no question", "view " .. tostring(r.left58))
         check(r.busy ~= nil, "DK58: an upload left and come back to is still waiting for Steam's answer",
             "onShow set busy to nil: Steam's answer would be dropped (onUpdated returns when not busy), the change note kept and Upload lit for a second send")
-        check(r.unsaved > 0, "DK59: unsaved Workshop edits survive leaving by the menu bar", "the edits were dropped with no question (onShow rebuilds the form from the folders)")
+        check(r.unsaved > 0, "DK58: the form left while the upload waits is kept as it was", "the unsaved edits were dropped (onShow rebuilt the form from the folders)")
         if r.title then note("DK60: pad A on the Workshop's Title focuses the field directly (focused: " .. tostring(r.title) .. "); no pad keyboard is asked for") end
         skip("DK60: a pad keyboard on the Workshop's Title, Change note and the editor's cards", "the keyboard comes only with a real pad")
-        MM.showView("main")
+        MM.leaveRun(function() MM.showView("main") end)   -- (nothing unsaved now; past any question all the same)
     end)
     after(200, function()
         if not MM.hasView("wsdesc") then keep.noDe = true; return end
@@ -1760,13 +1877,30 @@ function X.workshop()
         w:back()
         r.c, r.f = w.confirm, w.focusId
         w.confirm, w.focusId = false, nil
+        -- DK59: left by the menu bar with the text changed: the editor's question opens, nothing handed back yet
         MM.showView("main")
-        r.done = keep.de.n
-        MM.wsEditor = nil
+        r.mb = { view = MM.view, c = w.confirm, go = w._leaveGo ~= nil, done = keep.de.n }
+        keep.de.r = r
         check(r.over == true, "DK62: over the room, the editor's Use this description greys (its count turns red)", tostring(r.over))
         check(r.c == "leave", "DK59: the description editor asks before its changes go (Cancel)", tostring(r.c))
         note("DK13: the description editor's leave question puts the pad on " .. tostring(r.f) .. " (Keep)")
-        check(r.done > 0, "DK59: a description being edited survives leaving by the menu bar", "the menu bar left the editor with no question and nothing was handed back (done ran " .. r.done .. " times)")
+        check(r.mb.view == "wsdesc" and r.mb.c == "leave" and r.mb.go and r.mb.done == 0, "DK59: leaving the description editor by the menu bar with changed text asks its question first (nothing handed back yet)",
+            "view " .. tostring(r.mb.view) .. ", question " .. tostring(r.mb.c) .. ", move held " .. tostring(r.mb.go) .. ", done ran " .. r.mb.done .. " times")
+    end)
+    after(250, function()
+        if keep.noDe then return end
+        local w, r = K.win("wsdesc"), keep.de.r
+        -- Keep: the text handed to the Workshop (the stand-in's done), then the held move goes on to the main window
+        -- (the Workshop holds no unsaved edits, so it asks nothing)
+        local ws = K.win("workshop")
+        if ws then ws.unsaved = {}; ws.busy = nil end
+        local why = (w.confirm == "leave") and K.press(w, "confirm:yes") or "no question open"
+        r.keep = { why = why, done = keep.de.n, view = MM.view }
+        if w.confirm then w.confirm, w.focusId = false, nil end
+        if MM.view ~= "main" then MM.leaveRun(function() MM.showView("main") end) end
+        MM.wsEditor = nil
+        check(why == nil and r.keep.done == 1 and r.keep.view == "main", "DK59: the editor's Keep hands the description back once and goes on with the menu bar's move",
+            tostring(why) .. "; done ran " .. r.keep.done .. " times, view " .. tostring(r.keep.view))
         skip("DK61: a folder with no Workshop ID always makes a new item", "needs real Steam")
         skip("DK62: the room against a real submit", "needs real Steam")
         skip("DK63: a preview.png added while the window is open", "needs a picture copied into a Workshop folder (outside Zomboid/Lua)")
@@ -1914,11 +2048,11 @@ function X.putBack()
         pcall(function()
             local w = K.win("workshop")
             if w then
-                w.busy = nil; w.unsaved = {}; w.confirm = false
+                w.busy = nil; w.unsaved = {}; w.confirm = false; w._leaveGo = nil
                 if keep.wsState then w._pickedLast, w.sel = keep.wsState.picked, keep.wsState.sel end
             end
         end)
-        pcall(function() local w = K.win("wsdesc"); if w then w.confirm = false end end)
+        pcall(function() local w = K.win("wsdesc"); if w then w.confirm = false; w._leaveGo, w._leaveView = nil, nil end end)
         MM.wsEditor = nil
         MM.readyChecks.zedqa = nil
         D.failWrite = false
@@ -1927,7 +2061,8 @@ function X.putBack()
         MM.deskAt, MM.deskBack = nil, nil
         MM.forceGamepad = keep.pad0
         pcall(function() local c = K.ms().onlineCoopScreen; if c and c:isVisible() then c:setVisible(false) end end)
-        pcall(MM.showView, "main")
+        -- (past any window's leave question: nothing is left to keep, and a question must not hold the main window back)
+        pcall(MM.leaveRun, function() MM.showView("main") end)
         pcall(function() if keep.hs0 ~= nil or K.ms().hasSaveFiles ~= keep.hs0 then K.ms().hasSaveFiles = keep.hs0 end end)
         pcall(function() if keep.hl0 then K.setHL(keep.hl0[1], keep.hl0[2], keep.hl0[3]) end end)
     end)
@@ -1966,8 +2101,15 @@ function X.putBack()
         check(K.ms().hasSaveFiles == keep.hs0, "put back: vanilla's hasSaveFiles as found")
         check(K.activated() == keep.mods0, "put back: the mods in use are the ones found")
         check(K.wouldReset() == nil, "put back: the mod list in memory is the one running (no Lua reload waiting)", K.wouldReset())
-        check(MM.view == "main" and K.up("main") and MM.ctx.open == nil and not K.main().confirm and MM.forceGamepad == keep.pad0,
-            "put back: the main window is up, no menu open, no question open", "view " .. tostring(MM.view))
+        local asking = {}
+        pcall(function()
+            for _, rv in ipairs(MM.views or {}) do
+                local w = MM.root[rv.field]
+                if w and w.confirm and type(w.confirm) ~= "function" then asking[#asking + 1] = rv.view .. " (" .. tostring(w.confirm) .. ")" end
+            end
+        end)
+        check(MM.view == "main" and K.up("main") and MM.ctx.open == nil and not K.main().confirm and #asking == 0 and MM.forceGamepad == keep.pad0,
+            "put back: the main window is up, no menu open, no question open", "view " .. tostring(MM.view) .. ((#asking > 0) and ("; still asking: " .. K.short(asking)) or ""))
     end)
     after(300, function()
         keep.zapFree = true

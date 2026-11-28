@@ -7,8 +7,8 @@
 --                against the map's table, the debug rows, the tips, the language marks, the colors (OP3 to OP11,
 --                OP23, OP24, OP30, OP33, OP37)
 --   drawing      ZeD setup walked top to bottom at the text size found and at the other one: each ZeD control
---                drawn as itself or as the drop-down, the wells, two-line names, the help band's three lines, the
---                window and the button map's labels on screen (OP12, OP16, OP31, OP68, OP80)
+--                drawn as itself or as the drop-down, the wells, two-line names, the help band grown to the longest
+--                tip, the window and the button map's labels on screen (OP12, OP16, OP31, OP68, OP80)
 --   ZeD setup    UI scale (the off steps, the pad's walk), See-through, Controller highlight, the preset, the
 --                merged rows, Button pictures, the give-backs, Lite and Full, Reset to defaults, Discard and the
 --                live previews; every pick on the controls only, then the window's own Discard (OP13 to OP29, OP48)
@@ -23,13 +23,14 @@
 --                no Reload) (OP65, OP68 to OP70)
 --   welcome      opened by MM.openWelcome: layout, Save setup greyed, a pick live, Playing with, Lite then Full,
 --                the Tutorial it starts on, B (Skip) only when ZeD_setup_seen.txt was there before (OP71 to OP79)
---   setup file   Save setup, Load a setup with three staged lines, a file with no valid line (OP75 to OP77)
+--   setup file   Save setup; the welcome's Load (done with Load picked) on three staged lines and on a file with no
+--                valid line (OP75 to OP77)
 -- Not stageable here, one SKIP each with the reason: OP2, OP22, OP34, OP35, OP39, OP41, OP42, OP50, OP58, OP66, OP67
 -- (by hand), OP40, OP62, OP64 (in game), the in-game parts of OP1 and OP21, Apply itself (OP38, OP51).
 -- NEVER pressed or called: Apply (the window's or the game's MainOptions:apply: it re-sets the screen mode and sets
--- the frame rate from its list, display settings this script must never touch), Accept or Done on the
--- welcome, Load (the welcome's), a chord's pick or X, Play or Stop on the sounds page, any sound volume, the
--- Advanced sound button itself, Take it, the screen-settings question's answers, Safe mode, display mode,
+-- the frame rate from its list, display settings this script must never touch), Accept on the welcome (done is
+-- pressed only with Load picked, on the staged setup file, OP75 and OP76), a chord's pick or X, Play or Stop on
+-- the sounds page, any sound volume, the Advanced sound button itself, Take it, the screen-settings question's answers, Safe mode, display mode,
 -- fullscreen, borderless, resolution, VSync, Pause on focus loss, the language, Quit, Reset Lua.
 -- What it puts back itself: every ZeD option as found (K.snapAll, compared at the end), the look, the UI scale and
 -- Style as found, every control on the window back from the stored values (the window's Discard, never Apply),
@@ -375,20 +376,6 @@ function K.dimmed(r)
     if (r.labelKey == "UI_ZeD_Settings_SeeThrough" or r.labelKey == "UI_ZeD_Settings_SolidInUse") and ZeD.seeThroughWorks and not ZeD.seeThroughWorks() then return true end
     return (r.zedNeeds or r.zedNeedsNot) and true or false
 end
--- the help band's wrap width for a row (the rows' box less its padding and the "Default:" column)
-function K.helpWrapW(w, r)
-    local T = ZeD.T
-    local pad = T.px(MM.U.STACK_PAD)
-    local rowsW = w.width - pad * 3 - T.px(210)
-    local dcol = 0
-    if r.zedDefault and r.control then
-        local t = ""
-        pcall(function() t = tostring(r.control:getOptionText(r.zedDefault) or "") end)
-        local dt = ZeD.tr("UI_ZeD_Options_DefaultIs", t)
-        dcol = math.min(T.px(240), MM.textW(T.fontF2, dt) + T.px(26))
-    end
-    return rowsW - T.px(24) - dcol
-end
 -- a stage's function that runs only while Options is up: fn(w, met)
 local function O(fn)
     return function(met)
@@ -613,8 +600,18 @@ function X.sAudio(w)
     for _, r in ipairs(K.rowsOf(w, "audio")) do if r.kind == "button" and not r.opt then btn = r end end
     if not btn then skip("OP5: the Advanced sound button's row", "the game offers no Advanced or Reload sound button here"); return end
     local c = btn.control
-    check(tostring(btn.label or "") ~= "", "OP5: the Advanced (or Reload) sound button's row has a name",
-        "name \"" .. tostring(btn.label) .. "\", the button reads \"" .. tostring(c and c.title) .. "\", its tooltip " .. tostring(c and c.tooltip) .. " (the help band reads nothing either)")
+    local title = tostring(c and c.title or "")
+    local isReload = title == getText("GameSound_ButtonReload")
+    local lab = tostring(btn.label or "")
+    check(lab ~= "" and lab ~= "UI_ZeD_Options_GameSounds" and lab ~= "UI_ZeD_Options_ReloadSounds", "OP5: the " .. (isReload and "Reload" or "Advanced") .. " sound button's row has a name",
+        "name \"" .. lab .. "\", the button reads \"" .. title .. "\", its tooltip " .. tostring(c and c.tooltip))
+    if isReload then
+        note("OP5: the debug Reload row keeps the game's tooltip as its help (" .. tostring(c and c.tooltip) .. ")")
+    else
+        local tk = btn.zedTipKey
+        local tip = tk and ZeD.tr(tk) or nil
+        check(tip ~= nil and tip ~= "" and tip ~= tk, "OP5: the Advanced sound button's row has a help line", "help key " .. tostring(tk) .. " reads \"" .. tostring(tip) .. "\"")
+    end
 end
 function X.sMoot(w)
     local shown, onlyRows = {}, {}
@@ -786,20 +783,37 @@ function X.sColors(w)
         end
     end
     if #rows == 0 then skip("OP33: the color rows", "no color row found"); return end
-    if #off == 0 then
-        check(true, "OP33: every color row's stored color (" .. #rows .. " rows) is one of the 84 swatches here, so its frame and the pad's start are right")
-    else
-        local r = off[1]
-        local at = nil
-        pcall(function()
-            w:openPalette(r, { x = w:getAbsoluteX() + 100, y = w:getAbsoluteY() + 100, w = 10, h = 10 })
-            at = w._palette and w._palette.at
-        end)
-        w._palette = nil
-        local b = r.control.backgroundColor or {}
-        check(false, "OP33: a stored color off the 84 swatches is framed in the palette and the pad starts on it",
-            #off .. " rows off the palette, first " .. K.rname(r) .. " (" .. string.format("%.3f,%.3f,%.3f", b.r or 0, b.g or 0, b.b or 0) .. "): no frame, the pad starts on swatch " .. tostring(at))
+    -- a row whose stored color is off the 84 swatches: one found as stored, else one staged in memory for the read
+    -- (the button's color table swapped for an off color, never picked or saved, and put back at once)
+    local r, staged = off[1], false
+    if not r then
+        r, staged = rows[1], true
     end
+    local c = r.control
+    local b0 = c.backgroundColor
+    if staged then c.backgroundColor = { r = 0.63, g = 0.02, b = 0.01, a = (b0 and b0.a) or 1 } end
+    local b = c.backgroundColor or {}
+    -- the nearest swatch, worked out here from the 84 codes
+    local want, best = nil, nil
+    for i, code in ipairs(X.PALETTE) do
+        local dr = (b.r or 0) - math.floor(code / 100) / 5
+        local dg = (b.g or 0) - math.fmod(math.floor(code / 10), 10) / 5
+        local db = (b.b or 0) - math.fmod(code, 10) / 5
+        local d = dr * dr + dg * dg + db * db
+        if not best or d < best then best = d; want = i end
+    end
+    local at, near = nil, nil
+    local ok, e = pcall(function()
+        w:openPalette(r, { x = w:getAbsoluteX() + 100, y = w:getAbsoluteY() + 100, w = 10, h = 10 })
+        at = w._palette and w._palette.at
+        near = w._palette and w._palette.near
+    end)
+    w._palette = nil
+    if staged then c.backgroundColor = b0 end
+    check(ok and at ~= nil and at == near and at == want, "OP33: a stored color off the 84 swatches is framed in the palette and the pad starts on it (the nearest swatch)",
+        (staged and ("every row's stored color (" .. #rows .. " rows) is on the palette: staged ") or (#off .. " rows off the palette, first ")) .. K.rname(r)
+        .. " (" .. string.format("%.3f,%.3f,%.3f", b.r or 0, b.g or 0, b.b or 0) .. "): the pad starts on swatch " .. tostring(at) .. ", the frame on " .. tostring(near)
+        .. ", the nearest is " .. tostring(want) .. ((not ok) and (" (" .. tostring(e) .. ")") or ""))
     note("OP33: a palette pick sets the button's color and the game's changed flag only: the game's live highlight call and a mod color option's onChange are skipped (code read, not staged)")
 end
 function X.sMods(w)
@@ -917,21 +931,47 @@ function X.judgeDraw(w, word)
     check(not over or K.hit(w, "options:pagestrack") ~= nil, "OP80: the page list scrolls in its own box when it is taller than the box (" .. word .. ")",
         "over " .. tostring(over))
     note("OP80: at text size " .. tostring(ZeD.currentSize) .. ", " .. two .. " ZeD setup names take two lines; the window " .. math.floor(w.width) .. "x" .. math.floor(w.height))
-    -- OP31
-    local long = {}
+    -- OP31: the band grows to the longest help on the rows shown (w:helpLinesFor), up to three tenths of the list's
+    -- height; a help longer still ends its last line in an ellipsis (ZeD_MainMenuOptions.lua drawRows)
+    X.judgeHelpBand(w, rows, word)
+end
+-- the help band as drawn last frame: the body runs from the list box's top (w._list) to the page box's foot
+-- (w._pagesBox, the same body); the band is the body less the list. Its lines are as many as it holds, and its cap
+-- is three tenths of the body (ZeD_MainMenuOptions.lua drawRows)
+function X.helpBand(w)
+    local T = ZeD.T
+    local l, pb = w._list, w._pagesBox
+    if not (l and l.h and pb and pb.h) then return nil end
+    local lh = MM.fontH(T.fontF2) + T.px(3)
+    local bodyY = l.y - T.px(1)
+    local bodyH = (pb.y + pb.h + T.px(1)) - bodyY
+    local helpH = bodyH - l.h - T.px(2)
+    local lines = math.max(1, math.floor((helpH - T.px(14)) / lh))
+    local cap = math.max(3, math.floor(bodyH * 0.3 / lh))
+    return lines, cap
+end
+function X.judgeHelpBand(w, rows, word)
+    local lines, cap = X.helpBand(w)
+    if not lines then check(false, "OP31: the help band read (" .. word .. ")", "no list box drawn"); return end
+    local need, longest = 0, "?"
+    local whole, cut = {}, {}
     for _, r in ipairs(rows) do
         if r.zedTipKey and r.kind ~= "header" then
-            local t = MM.ui.plain(ZeD.tr(r.zedTipKey))
-            if r.labelKey == "UI_ZeD_Settings_UiScale" and St.scaleTooBigHelp then
-                local tb = St.scaleTooBigHelp()
-                if tb then t = t .. " " .. tb end
-            end
-            local n = #ZeD.Atoms.wrapText(t, ZeD.T.fontF2, K.helpWrapW(w, r))
-            if n > 3 then long[#long + 1] = K.rname(r) .. " " .. n .. " lines" end
+            -- (one row at a time through the window's own count: its wrap width, font and Default column)
+            local n = w:helpLinesFor({ r }, w._list.w)
+            if n > need then need = n; longest = K.rname(r) end
+            if n > lines then cut[#cut + 1] = K.rname(r) .. " " .. n .. " lines" elseif n > 3 then whole[#whole + 1] = K.rname(r) .. " " .. n end
         end
     end
-    check(#long == 0, "OP31: every ZeD setup tip fits the help band's three lines (" .. word .. ", text size " .. tostring(ZeD.currentSize) .. ")",
-        ((#long > 0) and "the rest is not drawn, with no mark: " or "") .. K.short(long))
+    pcall(function() w._helpLines = nil end)   -- (the window works its own list out again next frame)
+    -- shown whole, or the band at its cap and the rest ending in an ellipsis
+    check(lines >= need or lines >= cap, "OP31: every ZeD setup tip shows whole in the help band, or the band is at its cap and the tip ends in an ellipsis ("
+        .. word .. ", text size " .. tostring(ZeD.currentSize) .. ")",
+        "band " .. lines .. " lines (cap " .. cap .. "), the longest tip " .. need .. " (" .. longest .. "); past three lines and shown whole: " .. ((#whole > 0) and K.short(whole) or "none")
+        .. ((#cut > 0) and ("; cut: " .. K.short(cut)) or ""))
+    if #cut > 0 and lines >= cap then
+        note("OP31: past the band's cap these tips end their last line in an ellipsis (" .. word .. "; drawn, not read): " .. K.short(cut))
+    end
 end
 function X.drawWalk(word)
     after(300, O(function(w) K.toPage(w, "zed"); keep.draw = {} end))
@@ -1488,14 +1528,38 @@ function X.gameRows()
         check(not w:isChanged(r) and w:anyChanged() and d ~= nil and not d.disabled and a ~= nil and not a.disabled and #(w.titleStats or {}) > 0,
             "OP45: a change set back by hand clears its dot but the game's flag stays: Changed, Discard and Apply stay lit",
             "dot " .. tostring(w:isChanged(r)) .. ", flag " .. tostring(w:anyChanged()))
+        keep.n46 = w:changedCount()
         K.try("OP46: Back with the flag on and no row changed", function() w:back() end)
     end))
+    -- (fixed: with no row changed Back asks nothing and leaves through Discard, the flag cleared; Options is opened
+    -- again for the rest)
+    waitFor(function() return keep.noTick or keep.noOpts or MM.view ~= "options" end, 3000, function(met)
+        if keep.noTick or keep.noOpts then return end
+        local w = K.W()
+        local asked = w and w.confirm
+        check(MM.view == "main" and not asked and not K.changed(), "OP46: Back with no row changed does not ask to discard changes: it leaves, the flag cleared",
+            "view " .. tostring(MM.view) .. ", confirm " .. tostring(asked) .. ", " .. tostring(keep.n46) .. " rows changed, flag " .. tostring(K.changed()))
+        if asked then pcall(w.setConfirm, w, false) end
+        if MM.view == "options" and w then
+            -- (still up: the question put away and the walk goes on from here, no reopen)
+            keep.stay46 = true
+        end
+    end)
+    after(250, function()
+        if keep.noTick or keep.noOpts or keep.stay46 then return end
+        if MM.view ~= "main" then K.rescue() end
+        K.try("OP46: Options opened again", MM.openOptions)
+    end)
+    waitFor(function() return keep.noTick or keep.noOpts or K.up("options") end, 4000, function(met)
+        if keep.noTick or keep.noOpts then return end
+        if not check(met, "OP46: Options opens again after Back", "view " .. tostring(MM.view)) then keep.noOpts = true; K.rescue() end
+    end)
     after(300, O(function(w)
         if keep.noTick then return end
-        check(not (w.confirm == "back" and w:changedCount() == 0), "OP46: Back with no row changed does not ask to discard changes",
-            "asks \"" .. ZeD.tr("UI_ZeD_Options_AskDiscardMany", 1) .. "\" with " .. w:changedCount() .. " rows changed (confirm " .. tostring(w.confirm) .. ")")
+        local r, p = K.grow(w, keep.tickName)
+        if p then K.toPage(w, p.raw) end
+        check(r and (r.control.selected[1] == true) == keep.tick0 and not K.changed(), "OP46: reopened, the tick box as it was and nothing waiting", keep.tickName)
         if w.confirm then w:setConfirm(false) end
-        local r = K.grow(w, keep.tickName)
         w._tickCol = 1
         w:activateRow(r)
         w.focusId = nil
@@ -1511,7 +1575,28 @@ function X.gameRows()
             if id:find("^options:r%d+:") then rowsLive = rowsLive + 1 end
             if id:find("^options:page:%d+$") then pagesLive = pagesLive + 1 end
         end
-        check(rowsLive == 0 and pagesLive == 0, "OP43: under Back's question the rows and pages take no click", rowsLive .. " row hit boxes and " .. pagesLive .. " page hit boxes live under the question")
+        local otherLive = {}
+        for _, h in ipairs(w._hits or {}) do
+            local id = tostring(h.id)
+            if not h.strip and not id:find(":confirm:") then otherLive[#otherLive + 1] = id end
+        end
+        check(rowsLive == 0 and pagesLive == 0 and #otherLive == 0, "OP43: under Back's question the rows, pages, Find and scroll bars take no click (only the answers)",
+            rowsLive .. " row hit boxes and " .. pagesLive .. " page hit boxes live under the question; others: " .. K.short(otherLive))
+        -- the D-pad stays on the answers
+        local f0 = w.focusId
+        local walked = {}
+        for _, d in ipairs({ "up", "down", "left", "right" }) do
+            pcall(function() w:joyDir(d) end)
+            local f = tostring(w.focusId or "")
+            if not f:find("^confirm:") then walked[#walked + 1] = d .. " to " .. f end
+        end
+        check(#walked == 0, "OP43: under Back's question the D-pad stays on the answers", K.short(walked))
+        w.focusId = f0
+        -- (the Find box is the game's own text field, a child the pointer reaches past the hit boxes: Build's known gap)
+        local fOpen = false
+        pcall(function() fOpen = w.find:isVisible() and w.find:isEditable() and true or false end)
+        check(not fOpen, "OP43: under Back's question the Find box takes no focus",
+            "the Find text box is still shown and editable under the question: a click on it focuses it (Build's known gap, ZeD_MainMenuOptions.lua render keeps only the band's hit boxes)")
         note("OP43: a change made under Back's question is discarded or applied with the count asked before it (no recount)")
         K.press(w, "confirm:no")
     end))
@@ -1623,7 +1708,7 @@ function X.keys()
         local name = tostring((e.txt.translation or e.txt.name or (e.txt.getName and e.txt:getName())) or "")
         check(w.confirm == "key" and w._keyEntry == e and name ~= "", "OP56: the band asks for the action's key by its name", keep.kName .. " \"" .. name .. "\" " .. tostring(w.confirm))
         -- OP61
-        check(K.spec(w, w.focusId or "") ~= nil, "OP61: on the pad the key band's focus lands on one of its answers",
+        check(w.focusId == "confirm:no" and K.spec(w, "confirm:no") ~= nil, "OP61: on the pad the key band's focus lands on one of its answers (Cancel)",
             "focus " .. tostring(w.focusId) .. "; the band has " .. K.btnIds(w))
         K.try("OP56: a free key with Shift", function() w:gotKey(keep.kFree, true, false, false) end)
         check(e.keyCode == keep.kFree and e.shift == true and not e.ctrl and not w.confirm and K.changed(), "OP56: the key binds with its one modifier, the game's flag set",
@@ -1805,7 +1890,15 @@ function X.find()
         local msB = (b > 0) and math.floor(1500 / b * 10 + 0.5) / 10 or 0
         note("OP54: one letter in Find (\"e\", " .. #K.found(w) .. " rows found) at " .. getCore():getScreenWidth() .. "x" .. getCore():getScreenHeight() .. ": "
             .. a .. " frames in 1.5 s with Find empty (about " .. fpsA .. " a second, " .. msA .. " ms each), " .. b .. " with the letter (about " .. fpsB .. " a second, "
-            .. msB .. " ms each); every group read and each row's help built every frame (ZeD_MainMenuOptions.lua Find)")
+            .. msB .. " ms each)")
+        keep.fc = w._findCache
+    end))
+    -- (Build's fix: the rows found are kept until the words, the page or the groups change, not built each frame)
+    after(300, O(function(w)
+        local fc = w._findCache
+        check(keep.fc ~= nil and fc == keep.fc and fc.q == "e", "OP54: Find's rows are worked out once for the words, not again each frame",
+            "cache " .. tostring(fc and fc.q) .. ((fc ~= keep.fc) and ", rebuilt between frames" or ""))
+        keep.fc = nil
         w.find:setText("")
         K.errCheck("Find")
     end))
@@ -1862,8 +1955,9 @@ function X.subs()
     end))
     after(300, O(function(w)
         if not keep.spRow then return end
-        check(not (w.confirm == "restart" and K.spec(w, "confirm:yes") == nil), "OP44: a question raised on the button map shows there",
-            "confirm " .. tostring(w.confirm) .. " but the band draws " .. K.btnIds(w) .. ": nothing shows until Back")
+        check(w.sub == "pad" and w.confirm == "restart" and K.spec(w, "confirm:yes") ~= nil, "OP44: a question raised on the button map shows there",
+            "sub " .. tostring(w.sub) .. ", confirm " .. tostring(w.confirm) .. ", the band draws " .. K.btnIds(w))
+        check(w.focusId == "confirm:yes", "OP44: the pad's hand is on the question's answer on the button map", "focus " .. tostring(w.focusId))
         w:setConfirm(false)
         K.try("OP65: B on the button map", function() w:joyB() end)
         check(w.sub == nil and w.scroll == keep.sc1 and w.focusId == keep.fo1, "OP65: B on the button map comes back to the same scroll and row",
@@ -1953,11 +2047,13 @@ function X.welcome()
         -- OP74
         local wanted = WL.tutorialWanted()
         local tutWord = keep.tut0 and ("holds \"" .. tostring(keep.tut0[1]) .. "\"") or "is not there"
-        if keep.seen0 then
-            check(not (w.tutorial == 1 and not wanted), "OP74: reopened, Tutorial starts on the answer given (not Show me around after No thanks or a tour done)",
-                "Tutorial starts on " .. tostring(w.tutorial) .. " (1 Show me around); ZeD_tutorial.txt " .. tutWord .. ": Accept would write \"1\" and arm the tour again")
+        if WL.seen() then
+            local want = wanted and 1 or 2
+            check(w.tutorial == want, "OP74: reopened, Tutorial starts on the answer given (Show me around only while the tour is still wanted)",
+                "Tutorial starts on " .. tostring(w.tutorial) .. " (1 Show me around, 2 No thanks), want " .. want .. "; ZeD_tutorial.txt " .. tutWord)
         else
-            note("OP74: the setup was never answered on this machine (no seen file): Tutorial starts on " .. tostring(w.tutorial) .. ", ZeD_tutorial.txt " .. tutWord)
+            check(w.tutorial == 1, "OP74: never answered on this machine (no seen file), Tutorial starts on Show me around",
+                "Tutorial starts on " .. tostring(w.tutorial) .. ", ZeD_tutorial.txt " .. tutWord)
         end
         w.way = 1
     end))
@@ -2078,41 +2174,93 @@ function X.setupFile()
         local saved = ZeD.tr("UI_ZeD_Welcome_Saved", f)
         check(ok and #miss == 0 and saved ~= "UI_ZeD_Welcome_Saved", "OP77: Save setup writes every ZeD option, the retired ones too, and says where",
             K.count(have) .. " lines in " .. f .. "; missing " .. K.short(miss) .. "; \"" .. saved .. "\"")
+        -- (the welcome's Load reads ZeD_setup.txt: for OP75 and OP76 St.loadSetup is stood in to read the test file
+        -- when ZeD_setup.txt was not there, and counts what it took; put back after OP75 and in the put-back)
+        keep.load0 = St.loadSetup
+        St.loadSetup = function(file, ...)
+            keep.loadN = keep.load0(file or keep.tfile, ...)
+            return keep.loadN
+        end
+        -- OP76 first: a file with no valid line (the welcome stays, so it is read before OP75 closes it)
+        K.writeLines(f, { "not a setup", "uiScale=99", "baseTheme=abc", "notAnOption=2", "=", "" })
+        keep.snap76 = K.snapAll()
+        keep.seen76 = K.readLines(keep.seenF)
+        keep.noWel = nil
+        K.try("OP75/OP76: the welcome opened for its Load", MM.openWelcome)
+    end)
+    waitFor(function() return K.up("welcome") end, 4000, function(met)
+        if not check(met, "OP75/OP76: the welcome opens for its Load", "view " .. tostring(MM.view)) then keep.noWel = true; K.rescue() end
+    end)
+    after(300, WE(function(w)
+        local f = keep.tfile
+        keep.loadN = nil
+        w.way = 2
+        K.try("OP76: the welcome's Load (done) on a file with no valid line", function() w:done() end)
+        local d = K.diff(keep.snap76, K.snapAll())
+        local said = ZeD.tr("UI_ZeD_Welcome_LoadEmpty", St.SETUP_FILE)
+        check(#d == 0, "OP76: a file with no valid line changes no option", K.short(d))
+        check(keep.loadN == 0 and MM.view == "welcome" and said ~= "UI_ZeD_Welcome_LoadEmpty" and w.note == said and K.same(K.readLines(keep.seenF), keep.seen76),
+            "OP76: a setup file with no valid line is not taken as done: the welcome stays and says nothing was loaded",
+            "loaded " .. tostring(keep.loadN) .. ", view " .. tostring(MM.view) .. ", the band says \"" .. tostring(w.note) .. "\"")
         -- OP75: three lines staged
         local us = K.val("uiScale") or 1
         local step = nil
         for _, i in ipairs({ 4, 5, 3, 6 }) do if not step and i ~= us and not St.scaleStepOff(St.uiScaleOption, i) then step = i end end
         local acc = ((K.val("accentColor") or 1) == 1) and 2 or 1
         local lock = ((K.val("inputModeLock") or 1) == 1) and 2 or 1
-        keep.l75 = { step = step or us, acc = acc, lock = lock, scale = ZeD.Scale.userScale, mode = K.mode() }
+        keep.l75 = { step = step or us, staged = step ~= nil, acc = acc, lock = lock, scale = ZeD.Scale.userScale, mode = K.mode() }
         K.writeLines(f, { "ZeD-GUI setup; <option id>=<item>", "uiScale=" .. tostring(step or us), "accentColor=" .. acc, "inputModeLock=" .. lock })
-        local n = St.loadSetup(f)
-        local L = keep.l75
-        check(n == 3 and K.val("uiScale") == L.step and K.val("accentColor") == acc and K.val("inputModeLock") == lock, "OP75: Load a setup takes every valid line",
-            tostring(n) .. " taken")
-        check(ZeD.currentAccent == St.accentKeys[acc], "OP75: Load a setup puts the theme and accent on screen at once", tostring(ZeD.currentAccent))
-        check(ZeD.Scale.userScale ~= L.scale or step == nil, "OP75: Load a setup re-applies the UI scale it takes",
-            "stored step " .. tostring(K.val("uiScale")) .. " but the scale on screen is still " .. tostring(ZeD.Scale.userScale) .. "; Playing with stored " .. tostring(K.val("inputModeLock"))
-            .. ", the input still " .. tostring(K.mode()) .. ": both wait for the next menu or game start")
+        keep.loadN = nil
+        w.way = 2
+        if keep.seen0 then
+            -- (done() ends as Accept does: ZeD_setup_seen.txt and ZeD_tutorial.txt written, both put back at the end)
+            K.try("OP75: the welcome's Load (done) on three staged lines", function() w:done() end)
+        else
+            -- (no seen file before: done() would make it and Lua cannot delete it. The steps done() runs on a load:
+            -- the load, then everything stored applied at once; the welcome left by hand)
+            keep.no75done = true
+            K.try("OP75: the welcome's load steps on three staged lines", function()
+                St.loadSetup()
+                St.reapplyFromOptions()
+            end)
+            MM.showView("main")
+        end
+    end))
+    waitFor(function() return keep.noWel or (MM.view == "main" and K.settled()) end, 4000, function(met)
+        if keep.noWel then
+            if keep.load0 then St.loadSetup = keep.load0; keep.load0 = nil end
+            return
+        end
+        local L = keep.l75 or {}
+        local how = keep.no75done and " (done() not pressed: no seen file before; the steps it runs)" or ""
+        check(MM.view == "main", "OP75: the welcome's Load closes the welcome" .. how, "view " .. tostring(MM.view))
+        check(keep.loadN == 3 and K.val("uiScale") == L.step and K.val("accentColor") == L.acc and K.val("inputModeLock") == L.lock, "OP75: Load a setup takes every valid line" .. how,
+            tostring(keep.loadN) .. " taken")
+        check(ZeD.currentAccent == St.accentKeys[L.acc], "OP75: Load a setup puts the theme and accent on screen at once" .. how, tostring(ZeD.currentAccent))
+        check(met and (ZeD.Scale.userScale ~= L.scale or not L.staged), "OP75: Load a setup re-applies the UI scale it takes" .. how,
+            "stored step " .. tostring(K.val("uiScale")) .. ", the scale on screen " .. tostring(ZeD.Scale.userScale) .. " (was " .. tostring(L.scale) .. ")"
+            .. ((not met) and ", the scale did not settle" or ""))
+        local key = St.inputLockKeys and St.inputLockKeys[L.lock or 1]
+        if key and key ~= "auto" then
+            check(K.mode() == key, "OP75: Load a setup applies Playing with at once" .. how, "stored " .. tostring(K.val("inputModeLock")) .. " (" .. key .. "), the input " .. tostring(K.mode()))
+        else
+            note("OP75: Playing with staged as Auto: nothing to see applied (the input " .. tostring(K.mode()) .. ")")
+        end
         note("OP75: Load takes any ZeD option a line names, Safe mode, Test language and the give-backs included (code read; not staged: Safe mode would hand the desk back at once)")
-        -- put back at once
+        -- put back at once (the stored values, then everything applied from them as Discard does)
+        if keep.load0 then St.loadSetup = keep.load0; keep.load0 = nil end
         K.setAll(keep.opt0)
         pcall(function() St.applyThemeNow() end)
-        pcall(function() St.applyScale() end)
-        pcall(function() if keep.l75.mode ~= K.mode() then ZeD.Input.Detector.setLockedMode(nil) end end)
-        -- OP76: a file with no valid line
-        K.writeLines(f, { "not a setup", "uiScale=99", "baseTheme=abc", "notAnOption=2", "=", "" })
-        local n0 = St.loadSetup(f)
-        local d = K.diff(keep.opt0, K.snapAll())
-        check(#d == 0, "OP76: a file with no valid line changes no option", K.short(d))
-        check(n0 == nil, "OP76: a setup file with no valid line is refused, not taken as loaded",
-            "loadSetup gave " .. tostring(n0) .. ": the welcome's Load counts that as done and closes with nothing changed and no note")
+        pcall(function() St.reapplyFromOptions() end)
         -- the file as found (or the test file emptied)
+        local f = keep.tfile
         if keep.tfile0 then K.writeLines(f, keep.tfile0, "\n") else K.writeLines(f, {}) end
     end)
     waitFor(function() return K.settled() end, 4000, function()
+        if MM.view ~= "main" then K.rescue() end
         check(ZeD.Scale.userScale == keep.scale0 and ZeD.currentAccent == keep.look0[2], "OP75: the staged values put back (UI scale and accent as found)",
             tostring(ZeD.Scale.userScale) .. " " .. tostring(ZeD.currentAccent))
+        check(K.mode() == keep.mode0, "OP75: the input mode put back as found", tostring(K.mode()) .. " (was " .. tostring(keep.mode0) .. ")")
         K.errCheck("the setup file")
     end)
 end
@@ -2145,6 +2293,7 @@ function X.putBack()
     after(300, function()
         -- (each part on its own, so one that throws does not stop the ones after it)
         pcall(function() local Q = ZeD.QuickChords; if keep.qReset then Q.reset = keep.qReset; keep.qReset = nil end end)
+        pcall(function() if keep.load0 then St.loadSetup = keep.load0; keep.load0 = nil end end)
         pcall(function()
             local w = K.W()
             if w then

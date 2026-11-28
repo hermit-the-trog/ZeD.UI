@@ -1,7 +1,8 @@
 -- ZeDUI/tools/qa/mu_mods.lua  (Nov 27 2026, QA menus sweep; tag mu_mods): MAIN MENU ONLY, pushed through the QA bridge.
 -- The mod manager's main window against its map, ZeDUI/qa/audits/2026-11-27_map_menu_mods.md (checks MM1-MM78). No pictures.
 --   opening      the About mods note once per run (the flag cleared first, put back), the main list's title and flags,
---                a new game's list (read only), the menu bar's way out and back (MM2), a reload need forgotten (MM5),
+--                a new game's list (read only), the menu bar's way out with a change waiting (Back's question,
+--                Keep editing, Discard changes with Accept stood in; Mods picked again, MM2), a reload need kept (MM5),
 --                a Workshop download while the window is up (OnModsModified fired, MM7)
 --   tabs         every tab's count against its rows with and without Find, Hide incompatible, a tab with nothing,
 --                one read back from ZeD_modsview.txt, the tab row fitting the list (also at Large text), LB and RB
@@ -13,16 +14,20 @@
 --                Sandbox and Conflicts tabs when a mod has them, Open in Mods (the jump file)
 --   profiles     only names starting "ZeDQA_mu_": New, the names refused, Rename, Duplicate, two with the same mods,
 --                the close box under a question, Load greyed with the order changed, Copy as text and Paste, Paste
---                over a name, a "\" id, a mod not installed (loaded, then Undo changes), Delete from the Delete key;
---                every one deleted the code's own way
---   the band     the pending line's words, the buttons fitting, Back's question (Keep editing), Undo changes
+--                over a name (its Replace question: Cancel, then Replace), names Paste refuses ("@ZeDQA_mu", No mods
+--                when no profile has that name), a "\" id, a mod not installed (loaded, then Undo changes), Delete from
+--                the Delete key; every one deleted the code's own way
+--   the band     the pending line's words, the buttons fitting, Back's question (Keep editing), Undo changes and
+--                Discard changes (Accept stood in) with the order changed too
 --   Workshop     MS.ws faked (four items, none of them a mod here): rows, tags, the pane's reason, the empty lines
 --   pad          the prompts at each stop, B back to the stop that asked, Up and Down under a question, Find to Hide
 --   Lite         Style set to Lite and back: the tab falls back to All, the star, the band
--- NEVER pressed or called: Accept, Reload, Keep, Discard changes, Quit to restart, Open in Steam, Open Workshop,
--- Homepage, a Workshop row's second click, Reset settings, Pick files, a file switch, Fine hide this, Load after (only
--- when a conflict offers it, then Undo changes), Back with nothing waiting (it accepts). The window is left the way the
--- menu bar leaves it (MM.showView "main"), so nothing is ever accepted and default.txt is never written.
+-- NEVER pressed or called: Accept, Reload, Keep, Quit to restart, Open in Steam, Open Workshop, Homepage, a Workshop
+-- row's second click, Reset settings, Pick files, a file switch, Fine hide this, Load after (only when a conflict offers
+-- it, then Undo changes), Back with nothing waiting (it accepts). Discard changes runs only with the window's accept
+-- stood in (MM2, MM64: the stand-in counts the call and runs the held move, never acceptChanges). The window is left
+-- the way the menu bar leaves it (MM.showView "main") with nothing waiting, so nothing is ever accepted and default.txt
+-- is never written.
 --
 -- What it puts back itself: every mod on or off and the load order as found (Undo changes, or the set and order kept
 -- at the start, then a fresh visit), every ZeD option (Style and Text size are flipped and put back), MS.ws (the Workshop
@@ -50,7 +55,7 @@ local K = {}
 local X = {}
 -- the QA profiles (every name starts "ZeDQA_"), a mod id that is never installed
 local Q = { A = "ZeDQA_mu_a", A2 = "ZeDQA_mu_a2", A3 = "ZeDQA_mu_a3", B = "ZeDQA_mu_b", R = "ZeDQA_mu_r", SL = "ZeDQA_mu_s",
-            MISS = "ZeDQA_mu_m", BAD = "ZeDQA_mu*?", FRESH = "ZeDQA_mu_fresh", GONE = "ZeDQANotInstalled42" }
+            MISS = "ZeDQA_mu_m", BAD = "ZeDQA_mu*?", FRESH = "ZeDQA_mu_fresh", AT = "@ZeDQA_mu", GONE = "ZeDQANotInstalled42" }
 -- the files under Zomboid/Lua this run may change, and the line end each is written with
 local FILES = { { "ModOptions.ini", "\r\n" }, { "ZeD_modsview.txt", "\n" }, { "pz_modlist_settings.cfg", "\n" },
                 { "ZeD_modprofiles.txt", "\n" }, { "ZeD_modprofiles_spare.txt", "\n" }, { "ZeD_mods_jump.txt", "\n" },
@@ -405,9 +410,23 @@ local function M(fn)
         return fn(w, met)
     end
 end
+-- the menu bar's way out (MM.showView "main"), where nothing should be waiting. Since Nov 27 2026 (DK19, MM2) a change
+-- waiting opens Back's question and holds the move (ZeD_MainMenuMods.lua:750, MM.leaveGuard): met here, that is a
+-- fault (the stage before left a change): it is said, the question shut, the set put back and the move let through
+-- the way a leave answer lets it (MM.leaveRun: nothing accepted), so no later stage is stuck behind it.
+function K.toMain(label)
+    local w = K.W()
+    MM.showView("main")
+    if MM.view ~= "main" and w and w.confirm == "back" then
+        check(false, label .. ": the way out goes through with no change waiting (no leave question)", "Back's question opened; on: " .. K.activeIds())
+        w:setConfirm(false)
+        K.restoreSet(w)
+        MM.leaveRun(function() MM.showView("main") end)
+    end
+end
 -- a visit again: the menu bar's way out (no Back), then Mods as its button opens it
 function X.revisit(label)
-    after(200, function() if keep.noMods then return end; K.try(label .. ": the main window", function() MM.showView("main") end) end)
+    after(200, function() if keep.noMods then return end; K.try(label .. ": the main window", function() K.toMain(label) end) end)
     after(250, function() if keep.noMods then return end; K.try(label .. ": Mods again", MM.openMods) end)
     -- (QA, Nov 27 2026: MM10 writes an empty tab to ZeD_modsview.txt, so this visit may open on a tab with no rows)
     waitFor(function() local w = K.W(); return keep.noMods or (K.up() and (#K.rows() > 0 or (w and w.filter ~= nil and w.filter ~= "all"))) end, 6000, function(met)
@@ -1058,8 +1077,8 @@ function X.detail()
         if not K.dev() then skip("MM3: ZeD-GUI's Open in Options with a change waiting", "no mod to turn on here")
         elseif not s then check(false, "MM3: ZeD-GUI's Options tab offers Open in Options", "no opt:open button")
         else
-            check(s.disabled == true, "MM3: ZeD-GUI's Open in Options is greyed while a change waits (every other mod's is)",
-                "changed " .. tostring(w:changed()) .. ", greyed " .. tostring(s.disabled) .. ": it leaves the window as in MM2")
+            check(w:changed() and s.disabled == true, "MM3: ZeD-GUI's Open in Options is greyed while a change waits (every other mod's is)",
+                "changed " .. tostring(w:changed()) .. ", greyed " .. tostring(s.disabled) .. " (offered, it would leave the window with the change waiting)")
         end
         K.restoreSet(w)
         w.dtab = "about"
@@ -1144,21 +1163,78 @@ function X.leaving()
         if not d then keep.noDev2 = true; return end
         w:toggle(d)
         keep.m2before = w:changed()
+        -- Mods picked again (the menu bar's Mods) while the window is up with the change waiting: the player's own
+        -- list stays as it is (MM.openMods returns early, ZeD_MainMenuMods.lua:2637-2641); it once reloaded the list
+        -- and made the change its baseline
+        K.try("MM2: Mods picked again with a change waiting", MM.openMods)
+        local dd = K.model().mods[keep.devId]
+        keep.m2again = { view = MM.view, on = dd and dd.isActive, base = dd and dd.defaultActive, changed = w:changed() }
+        -- the menu bar's way out with the change waiting: Back's question first (askLeave, ZeD_MainMenuMods.lua:750)
+        K.try("MM2: the main window with a change waiting", function() MM.showView("main") end)
+        keep.m2ask = { view = MM.view, confirm = w.confirm, held = w._leaveGo ~= nil, focus = w.focusId, changed = w:changed() }
     end))
-    X.revisit("MM2")
-    after(250, M(function(w)
-        if keep.noDev2 then skip("MM2: leaving by the menu bar with a change waiting", "no mod to turn on here"); return end
-        local d = K.dev()
-        local still = d and d.isActive
-        local asks = w:changed()
-        check(not (still and not asks), "MM2: a change left by the menu bar's way is still counted when the window comes back (Back still asks)",
-            "before leaving changed " .. tostring(keep.m2before) .. "; back again: " .. keep.devId .. " on " .. tostring(still) .. ", changed " .. tostring(asks)
-            .. " (the in-memory list became the baseline; default.txt is not written)")
-        K.restoreSet(w)
-    end))
+    -- (not M(): when the way out goes through with no question, the window is gone and these must still say so)
+    after(250, function()
+        if keep.noMods then return end
+        if keep.noDev2 then
+            skip("MM2: Mods picked again with a change waiting", "no mod to turn on here")
+            skip("MM2: leaving by the menu bar with a change waiting", "no mod to turn on here"); return
+        end
+        local w = K.W()
+        local g = keep.m2again
+        check(g.view == "mods" and g.on == true and g.base == false and g.changed == true,
+            "MM2: Mods picked again while the window is up with a change waiting keeps the change counted (no reload into a new baseline)",
+            "view " .. tostring(g.view) .. ", " .. keep.devId .. " on " .. tostring(g.on) .. ", as loaded " .. tostring(g.base) .. ", changed " .. tostring(g.changed))
+        local a = keep.m2ask
+        check(a.view == "mods" and a.confirm == "back" and a.held and a.focus == "confirm:no" and a.changed,
+            "MM2: leaving by the menu bar with a change waiting asks Back's question first (the move held, on Keep editing), the window stays",
+            "view " .. tostring(a.view) .. ", question " .. tostring(a.confirm) .. ", move held " .. tostring(a.held) .. ", on " .. tostring(a.focus) .. ", changed " .. tostring(a.changed))
+        if not (w and MM.view == "mods") then keep.m2gone = true; return end
+        -- Keep editing: the question shuts, the move goes with it, the change stays
+        local why = (w.confirm == "back") and K.press(w, "confirm:no") or "no question open"
+        keep.m2keep = { why = why, view = MM.view, confirm = w.confirm, held = w._leaveGo ~= nil, changed = w:changed() }
+        -- asked again, for Discard changes this time
+        K.try("MM2: the main window again", function() MM.showView("main") end)
+    end)
+    after(250, function()
+        if keep.noMods or keep.noDev2 or keep.m2gone then return end
+        local w = K.W()
+        local k = keep.m2keep
+        if not (w and MM.view == "mods") then
+            check(false, "MM2: Keep editing on that question stays in the window with the change waiting and drops the move", "asked again, the way out went through: view " .. tostring(MM.view))
+            keep.m2gone = true; return
+        end
+        check(k.why == nil and k.view == "mods" and not k.confirm and not k.held and k.changed,
+            "MM2: Keep editing on that question stays in the window with the change waiting and drops the move",
+            tostring(k.why) .. ", view " .. tostring(k.view) .. ", question " .. tostring(k.confirm) .. ", move held " .. tostring(k.held) .. ", changed " .. tostring(k.changed))
+        -- Discard changes, with Accept stood in (the real one writes default.txt and may reload Lua): the stand-in
+        -- runs what accept runs after acceptChanges, the move the question held (ZeD_MainMenuMods.lua:643-649)
+        keep.m2acc = 0
+        if w.confirm ~= "back" then keep.m2dis = "the question did not open again (" .. tostring(w.confirm) .. ")"; return end
+        w.accept = function(s)
+            keep.m2acc = keep.m2acc + 1
+            local go = s._leaveAfter
+            s._leaveAfter = nil
+            if go then MM.leaveRun(go) end
+        end
+        keep.m2dis = K.press(w, "confirm:discard")
+        w.accept = nil
+    end)
+    after(300, function()
+        if keep.noMods or keep.noDev2 or keep.m2gone then return end
+        local w = K.W()
+        if w then w.accept = nil end
+        check(keep.m2dis == nil and keep.m2acc == 1 and MM.view == "main" and K.asFound(),
+            "MM2: Discard changes on that question puts the mods back and goes on to the main window (Accept stood in: nothing accepted)",
+            tostring(keep.m2dis) .. ", accepts " .. tostring(keep.m2acc) .. ", view " .. tostring(MM.view) .. ", on: " .. K.activeIds())
+    end)
     X.revisit("MM2 put back")
     after(250, M(function(w)
         check(K.asFound() and not w:changed() and K.wouldReset() == nil, "MM2: the list and its baseline are as found again", K.activeIds())
+        -- (left with no question, the visit made the change its baseline: the set as found back, read again the code's
+        -- own way, so the later ways out meet no question)
+        if not K.asFound() then K.restoreSet(w) end
+        if w:changed() then pcall(function() triggerEvent("OnModsModified") end) end
         -- MM5: a reload need (the Files tab's count, set by hand: no file is switched)
         w._filesChanged = 2
         w:dirty()
@@ -1186,6 +1262,9 @@ function X.leaving()
             .. " and changed() reads " .. tostring(w:changed()) .. " (was " .. tostring(keep.m7.changed) .. "): the changed set is the new baseline")
         if d and d.favorite then w:toggleFav(d) end
         K.restoreSet(w)
+        -- (the reload made the changed set the baseline, so the set as found now counts as a change and the way out
+        -- would ask: the list is read again the code's own way, OnModsModified, so the baseline is the set as found)
+        if w:changed() then K.try("MM7: OnModsModified fired again (the baseline as found)", function() triggerEvent("OnModsModified") end) end
     end))
     X.revisit("MM7 put back")
     after(250, M(function(w)
@@ -1201,7 +1280,7 @@ function X.profiles()
     after(200, M(function(w)
         local m = K.model()
         local taken = {}
-        for _, n in ipairs(w:presetNames()) do if n:sub(1, 9) == "ZeDQA_mu_" or n:sub(1, 9) == "ZeDQA_mu*" then taken[#taken + 1] = n end end
+        for _, n in ipairs(w:presetNames()) do if n:sub(1, 9) == "ZeDQA_mu_" or n:sub(1, 9) == "ZeDQA_mu*" or n == Q.AT then taken[#taken + 1] = n end end
         if #taken > 0 then keep.noProf = true; note("profiles: QA profiles are already there (" .. table.concat(taken, ", ") .. "): the profile checks are skipped, nothing touched"); return end
         keep.presets0 = #w:presetNames()
         pcall(function() keep.lo0 = ZeD.ModOrder.getLo(ZeD.ModOrder.listKey(m)) end)
@@ -1337,32 +1416,75 @@ function X.profiles()
         check(keep.clipB == keep.clipWant and m.presets[Q.R] ~= nil and order == table.concat(keep.orderB, ";"),
             "MM56: Copy as text writes \"name:id;id;\" in the profile's order, and Paste brings it back in that order",
             "clipboard \"" .. tostring(keep.clipB) .. "\", pasted order " .. order .. " (the clipboard is put back at the end)")
-        -- MM53: a share text over a profile's name
+        -- MM53: a share text over a profile's name: Replace's question first (preplace, on Cancel), nothing replaced
+        -- until it is answered (ZeD_MainMenuMods.lua:1032-1060)
+        keep.m53text = Q.A2 .. ":ZeD_UI;" .. tostring(keep.devId or "ZeDQA_x") .. ";"
+        keep.m53pid = tostring(keep.devId or "ZeDQA_x")
+        keep.m53before = w:profileDiff({ name = Q.A2 }).count
         w:setConfirm("paste")
-        w.field:setText(Q.A2 .. ":ZeD_UI;" .. tostring(keep.devId or "ZeDQA_x") .. ";")
+        w.field:setText(keep.m53text)
+        w.note = nil
+        w:pastePreset()
+        local p = m.presets[Q.A2]
+        keep.m53ask = { confirm = w.confirm, focus = w.focusId, held = w._pasteText, kept = p ~= nil and p[keep.m53pid] == nil }
+    end))
+    after(250, M(function(w)
+        if keep.noProf then return end
+        local a = keep.m53ask
+        check(a.confirm == "preplace" and a.focus == "confirm:no" and a.held == keep.m53text and a.kept,
+            "MM53: Paste over an existing profile's name asks before it replaces (the question on Cancel, nothing replaced yet)",
+            "question " .. tostring(a.confirm) .. ", on " .. tostring(a.focus) .. ", text held " .. tostring(a.held == keep.m53text) .. ", " .. Q.A2 .. " as it was " .. tostring(a.kept))
+        -- Cancel: the profile as it was, the text dropped
+        local why = (w.confirm == "preplace") and K.press(w, "confirm:no") or "no question open"
+        local p = K.model().presets[Q.A2]
+        keep.m53cancel = { why = why, confirm = w.confirm, held = w._pasteText, kept = p ~= nil and p[keep.m53pid] == nil }
+        -- asked again, for Replace this time
+        w:setConfirm("paste")
+        w.field:setText(keep.m53text)
         w.note = nil
         w:pastePreset()
     end))
     after(250, M(function(w)
         if keep.noProf then return end
+        local c = keep.m53cancel
+        check(c.why == nil and not c.confirm and c.held == nil and c.kept, "MM53: Cancel on that question keeps the profile as it was and drops the pasted text",
+            tostring(c.why) .. ", question " .. tostring(c.confirm) .. ", text held " .. tostring(c.held ~= nil) .. ", " .. Q.A2 .. " as it was " .. tostring(c.kept))
+        -- Replace: the question's button, w:pastePreset(true)
+        keep.m53rep = (w.confirm == "preplace") and K.press(w, "confirm:yes") or ("the question did not open again (" .. tostring(w.confirm) .. ")")
+    end))
+    after(250, M(function(w)
+        if keep.noProf then return end
         local m = K.model()
         local got = w:profileDiff({ name = Q.A2 }).count
+        local p = m.presets[Q.A2]
+        local e = ZeD.ModOrder.entry(Q.A2)
+        local order = e and table.concat(e.order or {}, ";") or "(no entry)"
         local said = w.note and tostring(w.note.text) or ""
-        local nothing = said == K.tr("UI_ZeD_Mods_SayNothingToAdd")
-        check(not (nothing and got == 2), "MM53: Paste over an existing profile's name says what it did",
-            Q.A2 .. " now holds " .. tostring(got) .. " mods (the game replaced it, saved at once) while the note says \"" .. said .. "\"")
+        local want = K.tr("UI_ZeD_Mods_SayPasteReplaced", Q.A2)
+        check(keep.m53rep == nil and p ~= nil and p[keep.m53pid] ~= nil and order == "ZeD_UI;" .. keep.m53pid and said == want and not w.confirm,
+            "MM53: Replace on that question writes the pasted mods and their order and says it replaced the profile",
+            tostring(keep.m53rep) .. "; " .. Q.A2 .. " holds " .. tostring(got) .. " mods (was " .. tostring(keep.m53before) .. "), order \"" .. order .. "\", the note says \"" .. said .. "\"")
+        -- names no profile may take: refused with their own line (nameFree, ZeD_MainMenuMods.lua:937)
         local valid = true
         pcall(function() valid = SandboxOptions.isValidPresetName(Q.BAD) end)
-        keep.badIn = nil
-        if not valid then
+        local names = { Q.AT }
+        if not valid then names[#names + 1] = Q.BAD end
+        keep.noModsFree = m.presets["No mods"] == nil
+        if keep.noModsFree then names[#names + 1] = "No mods" end
+        local bad = {}
+        for _, n in ipairs(names) do
             w:setConfirm("paste")
-            w.field:setText(Q.BAD .. ":ZeD_UI;")
+            w.field:setText(n .. ":ZeD_UI;")
+            w.note = nil
             w:pastePreset()
-            keep.badIn = K.model().presets[Q.BAD] ~= nil
+            local s = w.note and tostring(w.note.text) or ""
+            if K.model().presets[n] ~= nil then bad[#bad + 1] = "\"" .. n .. "\" got in"; if n == "No mods" then keep.noModsIn = true end
+            elseif s ~= K.tr("UI_ZeD_Mods_SayPasteBadName", n) then bad[#bad + 1] = "\"" .. n .. "\": the note says \"" .. s .. "\"" end
+            if w.confirm then w:setConfirm(false) end
         end
-        if keep.badIn ~= nil then
-            check(not keep.badIn, "MM53: Paste refuses a name New would refuse", "\"" .. Q.BAD .. "\" (invalid) got in: " .. tostring(keep.badIn) .. "; No mods and @ names are not staged (QA names only)")
-        else note("MM53: \"" .. Q.BAD .. "\" is a valid preset name here: the invalid-name half is not staged; No mods and @ names are not staged (QA names only)") end
+        check(#bad == 0, "MM53: Paste refuses a name no profile may take, with its own line (" .. table.concat(names, ", ") .. ")",
+            K.short(bad) .. ((not valid) and "" or (" (\"" .. Q.BAD .. "\" is a valid preset name here: the invalid-characters half is not staged)"))
+            .. ((not keep.noModsFree) and " (a profile named No mods is there already: that half is not staged)" or ""))
         -- MM57: "\" ids
         w:setConfirm("paste")
         w.field:setText(Q.SL .. ":\\ZeD_UI;\\" .. tostring(keep.devId or "ZeDQA_x") .. ";")
@@ -1418,11 +1540,13 @@ function X.profiles()
         if keep.noProf then return end
         local m = K.model()
         if w.confirm then w:setConfirm(false) end
-        for _, n in ipairs({ Q.A, Q.A2, Q.A3, Q.B, Q.R, Q.SL, Q.MISS, Q.BAD }) do
+        local gone = { Q.A, Q.A2, Q.A3, Q.B, Q.R, Q.SL, Q.MISS, Q.BAD, Q.AT }
+        if keep.noModsIn then gone[#gone + 1] = "No mods" end   -- (only one this run made: a paste MM53 should have refused)
+        for _, n in ipairs(gone) do
             if m.presets[n] then pcall(function() w.psel = n; w:deletePreset() end) end
         end
         local left = {}
-        for _, n in ipairs(w:presetNames()) do if n:sub(1, 8) == "ZeDQA_mu" then left[#left + 1] = n end end
+        for _, n in ipairs(w:presetNames()) do if n:sub(1, 8) == "ZeDQA_mu" or n == Q.AT or (keep.noModsIn and n == "No mods") then left[#left + 1] = n end end
         check(#left == 0 and #w:presetNames() == keep.presets0, "profiles: every QA profile deleted the code's own way", K.short(left))
         w:leaveProfiles()
         w.preset = keep.preset0
@@ -1486,7 +1610,25 @@ function X.bandChecks()
     after(300, M(function(w)
         if keep.noDevB then return end
         check(not w:changed() and K.asFound(), "MM64: Undo changes puts the mods and the load order back, the window stays", K.activeIds() .. ", page " .. tostring(w.page))
-        note("MM64: Discard changes is not run (it accepts): by the code it sets the mods back (applyOnSet) and accepts without the order (no saveOrder), so a changed order stays")
+        -- MM64: Discard changes with the order changed too, Accept stood in (the real one writes default.txt and may
+        -- reload Lua): the mods and the order go back as Undo changes does, then it accepts (ZeD_MainMenuMods.lua:674-688)
+        local dbad = {}
+        w:toggle(K.dev())
+        local l2 = K.activeList()
+        local rev2 = {}
+        for i = #l2, 1, -1 do rev2[#rev2 + 1] = l2[i] end
+        w:saveOrder(rev2)
+        local moved = K.activeIds() ~= table.concat(l2, ";")
+        if not w:changed() then dbad[#dbad + 1] = "the mod did not go on" end
+        local acc = 0
+        w.accept = function() acc = acc + 1 end
+        local ok, e = pcall(function() w:discard() end)
+        w.accept = nil
+        if not ok then dbad[#dbad + 1] = "discard: " .. tostring(e) end
+        if acc ~= 1 then dbad[#dbad + 1] = "Accept reached " .. acc .. " times" end
+        if w:changed() or not K.asFound() then dbad[#dbad + 1] = "left " .. K.activeIds() .. " (as found " .. tostring(keep.ids0) .. ")"; K.restoreSet(w) end
+        check(#dbad == 0, "MM64: Discard changes puts the mods and the load order back, as Undo changes does (Accept stood in: nothing accepted)",
+            K.short(dbad) .. ((not moved) and " (the order would not change with " .. #l2 .. " mod(s) on: the order half not staged)" or ""))
         -- MM62: the pending line's words
         local bad = {}
         local want1 = K.tr("UI_ZeD_Mods_PendingReload", K.tr("UI_ZeD_Mods_TurnedOnOne", 1))
@@ -1817,7 +1959,7 @@ function X.leave()
     end))
     after(400, M(function(w)
         check(not w:changed() and K.asFound(), "leaving: the mods and the order as the window opened", K.activeIds())
-        MM.showView("main")
+        K.toMain("leaving")
     end))
     after(300, function()
         check(MM.view == "main", "leaving: the main window is up (left as the menu bar leaves it, nothing accepted)", "view " .. tostring(MM.view))
@@ -1830,7 +1972,7 @@ function X.putBack()
     after(300, function()
         pcall(function() local w = K.W(); if w and w.confirm then w:setConfirm(false) end end)
         pcall(function() local p = K.prompt(); if p and p._zedModsNag then note("put back: the About mods note was still up: OK"); p:press(p.ok) end end)
-        pcall(function() local w = K.W(); if w then w.paneText = nil end end)
+        pcall(function() local w = K.W(); if w then w.paneText = nil; w.accept = nil end end)
         pcall(function() if keep.drawEmpty0 then ZeD.Molecules.drawEmptyLine = keep.drawEmpty0 end end)
         pcall(function()
             local w = K.W()
@@ -1845,6 +1987,12 @@ function X.putBack()
         MM.forceGamepad = keep.pad0
         MM.ctx.open = nil
         pcall(function() if MM.view ~= "main" then MM.showView("main") end end)
+        -- (a change still waiting holds the move behind Back's question, MM.leaveGuard: shut it, the move let through as a
+        -- leave answer lets it, MM.leaveRun; nothing accepted)
+        pcall(function()
+            local w = K.W()
+            if MM.view ~= "main" and w and w.confirm then note("put back: the way out met a question (" .. tostring(w.confirm) .. "): shut, left without it"); w:setConfirm(false); MM.leaveRun(function() MM.showView("main") end) end
+        end)
         if keep.opt0 then
             pcall(K.setAll, keep.opt0)
             pcall(function() St.applyScale() end)
@@ -1884,7 +2032,7 @@ function X.putBack()
         end
         local m = K.model()
         local qa = {}
-        for n in pairs((m and m.presets) or {}) do if tostring(n):sub(1, 8) == "ZeDQA_mu" then qa[#qa + 1] = n end end
+        for n in pairs((m and m.presets) or {}) do if tostring(n):sub(1, 8) == "ZeDQA_mu" or n == Q.AT or (keep.noModsIn and n == "No mods") then qa[#qa + 1] = n end end
         check(#qa == 0, "put back: no QA profile left in the model", K.short(qa))
         local clip = nil
         pcall(function() clip = tostring(Clipboard.getClipboard() or "") end)

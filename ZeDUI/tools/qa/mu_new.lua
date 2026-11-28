@@ -21,7 +21,9 @@
 --   Back, Back, Back to the main window, then where the game's map panel and 3D figure were left.
 -- Harness lines (the desk, the put-back) carry NG0. Checks not stageable at the main menu get one SKIP each.
 -- NEVER pressed: Play on Looks (nor Return or A there: NG64 swaps in a stub first), a challenge's Next (every New
--- game Next goes through X.ngNext, which refuses a challenge), the voice preview (NG61), any Load, Continue, Reset Lua.
+-- game Next goes through X.ngNext, which refuses a challenge), the real voice preview (NG61 runs its handler on a
+-- stand-in screen and button with getSoundManager stood in: no sound), any Load, Continue, Reset Lua.
+-- NG39's save under a built-in's name and NG51's Replace use stand-ins or the ZeDQA_ names: no Apocalypse.cfg is written.
 --
 -- What it puts back itself: every ZeD option as found; Lua/saved_builds.txt, Lua/saved_outfits.txt,
 -- Lua/pz_modlist_settings.cfg and Lua/ModOptions.ini line for line; the sandbox screen's values and preset as the
@@ -485,15 +487,41 @@ function X.ngChallenges()
         local back = K.spec(w, "back")
         local bottom = last and (last.y + last.h) or 0
         local band = back and back.y or w.height
-        check(n == 60 and bottom <= band, "NG4: 60 challenges: every row of icons ends above the window's band (no scroll in the grid)",
-            n .. " icons laid out, the last row ends at " .. math.floor(bottom) .. ", the band starts at " .. math.floor(band) .. ", window " .. math.floor(w.height)
-            .. " high on " .. getCore():getScreenWidth() .. "x" .. getCore():getScreenHeight())
-        local fits = 0
-        for _, s in ipairs(w._specs or {}) do if tostring(s.id):sub(1, 5) == "icon:" and s.y + s.h <= band then fits = fits + 1 end end
-        note("NG4: the game has 4 challenges (one row); at this screen " .. fits .. " of the 60 end above the band, so a mod list past " .. fits .. " challenges runs over it")
+        -- (the fix: past the tube the grid and the description scroll as one card, w.bodyScroll over w._body.max)
+        local over = bottom > band
+        local body = w._body
+        local scrolls = (not over) or (type(body) == "table" and type(body.max) == "number" and body.max > 0 and type(w.bodyScroll) == "number")
+        keep.n4 = { n = n, over = over, scrolls = scrolls, bottom = bottom, band = band, max = body and body.max }
+        -- the last challenge picked: the card scrolls it into view (and it takes the pointer only then)
+        if over and scrolls then w.sel = 60 end
+    end))
+    after(300, NG("newgame", function(w)
+        if not keep.fakeOn then return end
+        local r = keep.n4 or {}
+        local back = K.spec(w, "back")
+        local band = back and back.y or w.height
+        local lastIn, lastHit = true, true
+        if r.over and r.scrolls then
+            local s60 = K.spec(w, "icon:60")
+            lastIn = s60 ~= nil and s60.y + s60.h <= band + 1
+            lastHit = false
+            for _, h in ipairs(w._hits or {}) do if h.id == "newgame:icon:60" then lastHit = true end end
+        end
+        local wheeled = true
+        if r.over and r.scrolls then
+            local ok = pcall(function() w:wheel(-1000) end)
+            wheeled = ok and w.bodyScroll == 0
+        end
+        check(r.n == 60 and r.scrolls and lastIn and lastHit and wheeled,
+            "NG4: 60 challenges: past the band the card scrolls (one bar), the last challenge picked scrolls into view and takes the pointer, the wheel brings it back to the top",
+            tostring(r.n) .. " icons laid out, the last row ends at " .. math.floor(r.bottom or 0) .. ", the band starts at " .. math.floor(r.band or 0) .. ", over " .. tostring(r.over)
+            .. ", scroll room " .. tostring(r.max) .. ", the last in view " .. tostring(lastIn) .. " (takes the pointer " .. tostring(lastHit) .. "), wheel to the top " .. tostring(wheeled)
+            .. " on " .. getCore():getScreenWidth() .. "x" .. getCore():getScreenHeight())
         w._challengeItems = nil
         keep.fakeOn = nil
+        keep.n4 = nil
         w.sel = 1
+        w.bodyScroll = 0
     end))
     after(250, NG("newgame", function(w)
         -- NG5: the longest description against the box
@@ -1115,6 +1143,56 @@ function X.sbGray()
         K.errCheck("NG36: graying and the count")
     end))
 end
+-- NG39: Save as preset under a built-in's name (Apocalypse) picks the player's file, not the built-in. Nothing is
+-- written: the options object's savePresetFile is a stand-in, and on the game's screen settingsFromUI, loadPresets
+-- (the real list plus the player's Apocalypse after the built-ins, as the game lists them) and onPresetChange (counted,
+-- nothing applied) are stood in for the one call, then the list and its pick are put back as found.
+function X.ng39(w, s)
+    local valid = false
+    pcall(function() valid = SandboxOptions.isValidPresetName("Apocalypse") end)
+    local builtinAt = nil
+    for i, q in ipairs(s.presets or {}) do if not builtinAt and q.name == "Apocalypse" and not q.userDefined then builtinAt = i end end
+    if not (valid and builtinAt) then
+        skip("NG39: a preset saved under a built-in's name reloads as the player's", "no built-in Apocalypse (" .. tostring(builtinAt) .. ") or the name rule refuses it (" .. tostring(valid) .. ")")
+        return
+    end
+    local realNew = SandboxOptions.new
+    local fake = { savePresetFile = function() end }
+    pcall(function() SandboxOptions.new = function() return fake end end)
+    if SandboxOptions.new == realNew then
+        pcall(function() SandboxOptions.new = realNew end)
+        skip("NG39: a preset saved under a built-in's name reloads as the player's", "SandboxOptions.new could not be stood in: not staged (it would write Sandbox Presets/Apocalypse.cfg)")
+        return
+    end
+    local presets0, sel0 = s.presets, s.presetList.selected
+    local own = { settingsFromUI = rawget(s, "settingsFromUI"), loadPresets = rawget(s, "loadPresets"), onPresetChange = rawget(s, "onPresetChange") }
+    local changes, userAt = 0, nil
+    rawset(s, "settingsFromUI", function() end)
+    rawset(s, "loadPresets", function(self)
+        local l = {}
+        for i, q in ipairs(presets0 or {}) do l[i] = q end
+        l[#l + 1] = { name = "Apocalypse", userDefined = true }
+        userAt = #l
+        self.presets = l
+    end)
+    rawset(s, "onPresetChange", function() changes = changes + 1 end)
+    local field0 = w.field:getText()
+    w.field:setText("Apocalypse")
+    local ok, err = pcall(function() w:savePreset() end)
+    local picked = s.presetList.selected
+    local p = s.presets and s.presets[picked]
+    -- put back: the real functions, the list and its pick, the field
+    pcall(function() SandboxOptions.new = realNew end)
+    for _, k in ipairs({ "settingsFromUI", "loadPresets", "onPresetChange" }) do rawset(s, k, own[k]) end
+    s.presets = presets0
+    s.presetList.selected = sel0
+    w.field:setText(field0 or "")
+    pcall(function() w:setConfirm(false) end)
+    pcall(function() w:refreshDiff(true) end)
+    check(ok and userAt ~= nil and picked == userAt and p ~= nil and p.userDefined == true and changes == 1 and SandboxOptions.new == realNew,
+        "NG39: a preset saved under a built-in's name (Apocalypse) picks and loads the player's file, not the built-in (stood in: no file written)",
+        (ok and "" or ("error " .. tostring(err) .. "; ")) .. "picked #" .. tostring(picked) .. " (the built-in #" .. builtinAt .. ", the player's #" .. tostring(userAt) .. "), loaded " .. changes .. " time(s)")
+end
 function X.sbPresets()
     -- NG38: loading a preset
     after(200, NG("sandbox", function(w)
@@ -1167,13 +1245,10 @@ function X.sbPresets()
         check(o[1] == o[2] and keep.gray39 and live and p and p.userDefined and p.name == QA_PRESET and listed and not w.confirm,
             "NG39: Save as preset offers the preset's name (or New), grays Save for a bad name, saves and picks the new one",
             "offered " .. tostring(o[1]) .. " (want " .. tostring(o[2]) .. "), empty grayed " .. tostring(keep.gray39) .. ", saved and picked " .. tostring(p and p.name) .. ", in the folder " .. tostring(listed))
-        -- the built-in's name: the name rule and the reload's loop, read without saving
-        local valid = false
-        pcall(function() valid = SandboxOptions.isValidPresetName("Apocalypse") end)
-        local first = nil
-        for i, q in ipairs(s.presets) do if not first and q.name == "Apocalypse" then first = { i = i, user = q.userDefined } end end
-        check(not (valid and first and not first.user), "NG39: a preset saved under a built-in's name reloads as the player's (not staged: it would write Sandbox Presets/Apocalypse.cfg)",
-            "the name rule takes Apocalypse " .. tostring(valid) .. "; the reload's loop takes the first preset of that name: #" .. tostring(first and first.i) .. ", the built-in " .. tostring(first and not first.user))
+        -- the built-in's name: saved through stand-ins (no file written: SandboxOptions.new's file, the screen's
+        -- settingsFromUI, loadPresets and onPresetChange are stood in on this screen for one call), the reload lists
+        -- the built-in Apocalypse first and the player's after it, as the game's loop does
+        X.ng39(w, s)
         -- NG40: Delete
         local hasDel = false
         for _, it in ipairs(w:presetItems()) do if type(it) == "table" and it.text == ZeD.tr("UI_ZeD_Sandbox_DeletePreset", QA_PRESET) then hasDel = true end end
@@ -1533,24 +1608,39 @@ function X.trTitle()
         pcall(function() getSandboxOptions():getOptionByName("NegativeTraitsPenalty"):setValue(keep.pen0) end)
         w:clearTraits()
         -- NG50: the help band's lines for each occupation
+        -- (the fix: the band grows to w:helpHeight over the rows and the chosen occupation's line, capped at half the
+        -- room, at least 54 units; measured here as prerender lays it, with each occupation chosen in turn in memory)
         local T = ZeD.T
-        local h, fh = T.px(54), MM.fontH(T.fontF2)
-        local fit, ly = 0, T.px(7)
-        while ly + fh <= h - T.px(4) do fit = fit + 1; ly = ly + fh + T.px(2) end
-        local width = w.width - T.px(MM.U.STACK_PAD) * 2 - T.px(24)
-        local cut, worst = {}, 0
-        for _, it in ipairs(p.listboxProf.items) do
-            local n = 0
-            local text = tostring(it.text) .. ": " .. tostring(it.tooltip or "")
-            for line in (text .. "\n"):gmatch("([^\n]*)\n") do
-                local pl = MM.ui.plain(line)
-                if pl ~= "" then n = n + #ZeD.Atoms.wrapText(pl, T.fontF2, width) end
+        local fh = MM.fontH(T.fontF2)
+        local pad = T.px(MM.U.STACK_PAD)
+        local width = w.width - pad * 2 - T.px(24)
+        local pts = p:PointToSpend()
+        local stripY = w.height - w:footerHeight() - MM.bandH()
+        local cap = math.floor((stripY - pad - (T.titleBarH + pad)) / 2)
+        local cols = w._cols or w:columns()
+        local sel0 = p.listboxProf.selected
+        local cut, worst, fit0 = {}, 0, nil
+        local ok, err = pcall(function()
+            for i, it in ipairs(p.listboxProf.items) do
+                p.listboxProf.selected = i
+                local h = math.max(T.px(54), math.min(w:helpHeight(cols, w.width - pad * 2, pts), cap))
+                local fit, ly = 0, T.px(7)
+                while ly + fh <= h - T.px(4) do fit = fit + 1; ly = ly + fh + T.px(2) end
+                if not fit0 then fit0 = fit end
+                local n = 0
+                local text = tostring(it.text) .. ": " .. tostring(it.tooltip or "")
+                for line in (text .. "\n"):gmatch("([^\n]*)\n") do
+                    local pl = MM.ui.plain(line)
+                    if pl ~= "" then n = n + #ZeD.Atoms.wrapText(pl, T.fontF2, width) end
+                end
+                if n > worst then worst = n end
+                if n > fit then cut[#cut + 1] = tostring(it.text) .. " " .. n .. " of " .. fit end
             end
-            if n > worst then worst = n end
-            if n > fit then cut[#cut + 1] = tostring(it.text) .. " " .. n end
-        end
-        check(#cut == 0, "NG50: the help band shows every line of each occupation's description (no scroll in it)",
-            "room for " .. fit .. " lines; the longest has " .. worst .. (#cut > 0 and ("; cut: " .. K.short(cut)) or ""))
+        end)
+        p.listboxProf.selected = sel0
+        if not ok then cut[#cut + 1] = "error " .. tostring(err) end
+        check(#cut == 0, "NG50: the help band grows to show every line of each occupation's description (no scroll in it)",
+            "room for " .. tostring(fit0) .. " lines with the first chosen (cap " .. cap .. " px); the longest has " .. worst .. (#cut > 0 and ("; cut: " .. K.short(cut)) or ""))
     end))
 end
 function X.trBuilds()
@@ -1577,7 +1667,7 @@ function X.trBuilds()
         p.savedBuilds.options = K.copy(keep.bopts0)
         p.savedBuilds.selected = keep.bsel0
         check(zed == game, "NG51: with a build named as the occupation already saved, Save build offers the game's numbered name (staged in memory only)",
-            "ZeD offers \"" .. tostring(zed) .. "\", the game \"" .. tostring(game) .. "\": saving ZeD's would overwrite that build with no question")
+            "ZeD offers \"" .. tostring(zed) .. "\", the game \"" .. tostring(game) .. "\"")
         -- a build saved under a test name
         w:setConfirm("save")
         w.field:setText(QA_BUILD)
@@ -1587,14 +1677,23 @@ function X.trBuilds()
         local take = X.traitRows(w)[1]
         if take then w:takeTrait(take.trait) end
         K.try("NG51: Save build (" .. QA_BUILD .. ")", function() w:saveBuild() end)
+        -- (a ZeDQA_build left by an earlier run: the new question asks first; Replace is its yes)
+        local stale = (w.confirm == "replace")
+        if stale then K.try("NG51: Replace the stale " .. QA_BUILD, function() w:saveBuild(true) end) end
         local saved = K.has(p.savedBuilds.options, QA_BUILD) and p.savedBuilds.options[p.savedBuilds.selected] == QA_BUILD
         keep.order52a = table.concat(p.savedBuilds.options, ", ")
         w:setConfirm("save")
         local offered = w.field:getText()
         K.try("NG51: Save build again under the same name", function() w:saveBuild() end)
-        local asked = w.confirm
-        check(saved and offered == QA_BUILD and not asked, "NG51: Save build saves and picks the build; saved again it offers the loaded build's name and overwrites with no question (as the game)",
-            "saved " .. tostring(saved) .. ", offered " .. tostring(offered) .. ", asked " .. tostring(asked))
+        -- (the fix: a name a build already has asks first, landing on Cancel; Replace, w:saveBuild(true), writes it)
+        local asked, onCancel = w.confirm, (w.focusId == "confirm:no")
+        K.try("NG51: Replace (saveBuild(true))", function() w:saveBuild(true) end)
+        local replaced = (not w.confirm) and K.has(p.savedBuilds.options, QA_BUILD) and p.savedBuilds.options[p.savedBuilds.selected] == QA_BUILD
+        local inFile = (BCRC.readSaveFile() or {})[QA_BUILD] ~= nil
+        check(saved and offered == QA_BUILD and asked == "replace" and onCancel and replaced and inFile,
+            "NG51: Save build saves and picks the build; saved again under the same name it asks first (landing on Cancel) and Replace writes it",
+            "saved " .. tostring(saved) .. (stale and " (a stale one replaced)" or "") .. ", offered " .. tostring(offered) .. ", asked " .. tostring(asked)
+            .. ", on Cancel " .. tostring(onCancel) .. ", replaced " .. tostring(replaced) .. ", in the file " .. tostring(inFile))
         keep.chosen53 = #p.listboxTraitSelected.items
         w:setConfirm("delete")
         keep.cancel53 = (w.focusId == "confirm:no")
@@ -1770,7 +1869,6 @@ function X.lkLook()
         for _, r in ipairs(w:rowsNow()) do kinds[r.kind] = (kinds[r.kind] or 0) + 1 end
         note("NG59: all clothes unlocked " .. tostring(all) .. ": the outfit list shows " .. tostring(v.outfitCombo ~= nil) .. "; " .. tostring(kinds.cloth or 0)
             .. " clothing rows (item, tint, fabric), no decal row and no outfit re-roll button (the game has both with all clothes unlocked; not staged)")
-        note("NG61: the voice preview is not pressed: the game's preview sets the music state to InGame and nothing in ZeD's Looks puts the menu music back")
         K.errCheck("NG58: swatches")
     end))
 end
@@ -1850,6 +1948,51 @@ function X.lkOutfits()
     end))
 end
 
+-- NG61: the voice preview's music state. The preview is pressed through stand-ins only: the game's
+-- getSoundManager is stood in for (it records the music states asked for and plays nothing), and the button's
+-- handler (ZeD's wrap over the game's onOptionMouseDown) runs on a stand-in screen with a stand-in button whose
+-- internal is PLAYDEMOVOICE, so only the game's preview branch can run. Put back as soon as the state comes back,
+-- or after 1.5 s, and in the put-back.
+function X.lkVoiceBack()
+    if keep.gsm0 then getSoundManager = keep.gsm0; keep.gsm0 = nil end
+end
+function X.lkVoice()
+    after(200, NG("looks", function(w)
+        local v = X.ccm()
+        local b = v and v.voiceDemoButton
+        keep.v61 = nil
+        if not (b and b._zedMusicWrap and b.onclick) then
+            check(false, "NG61: Looks wraps the game's voice preview so the menu music state comes back", "no wrap on the preview button (" .. tostring(b and b._zedMusicWrap) .. ")")
+            return
+        end
+        local calls = {}
+        local fake = setmetatable({ setMusicState = function(_, s) calls[#calls + 1] = tostring(s) end, playUISound = function() return 0 end },
+            { __index = function() return function() end end })
+        keep.gsm0 = getSoundManager
+        getSoundManager = function() return fake end
+        local noop = function() end
+        local scr = { soundRef = nil, getVoicePrefix = function() return "ZeDQA" end, getVoicePitch = function() return 0 end,
+                      getVoiceType = function() return 0 end, disableBtn = noop,
+                      soundPlayer = { isPlaying = function() return false end, stopSound = noop, setPos = noop, setParameterValueByName = noop, tick = noop } }
+        local btn = { internal = "PLAYDEMOVOICE" }
+        local ok, err = pcall(function() b.onclick(scr, btn) end)
+        keep.v61 = { calls = calls, ok = ok, err = err }
+        if not ok then X.lkVoiceBack() end
+    end))
+    waitFor(function()
+        local r = keep.v61
+        return r == nil or not r.ok or #r.calls >= 2
+    end, 1500, function()
+        X.lkVoiceBack()
+        local r = keep.v61
+        if not r then return end
+        local c = r.calls
+        check(r.ok and c[1] == "InGame" and c[#c] == "MainMenu", "NG61: the voice preview's InGame music state goes back to MainMenu once it has played (stood in: no sound played)",
+            (r.ok and "" or ("error " .. tostring(r.err) .. "; ")) .. "music states asked for: " .. (#c > 0 and table.concat(c, ", ") or "none"))
+        keep.v61 = nil
+    end)
+end
+
 -- =========================================================================================================
 -- 6: Back, Back, Back
 function X.backOne(view, label, fn, want)
@@ -1907,17 +2050,23 @@ function X.walkBack()
         local mp = v and v.mapPanel
         local sw = K.win("spawn")
         if mp and sw then
-            check(mp.parent ~= sw, "NG23: once Spawn is left the game's map panel goes back to the game's spawn screen (else safe mode shows the game's screen with no working map)",
-                "a child of ZeD's spawn window " .. tostring(mp.parent == sw) .. ", ZeD's map metatable " .. tostring(getmetatable(mp) == ZeD_MMSpawnMap)
-                .. " (moved in on show: " .. tostring(keep.mapIn) .. "); safe mode's hand-back does not move it; safe mode itself not turned on here")
+            -- (the fix: MM.showView runs the window's returnParts as it is left: the map back in its home, the game's
+            -- own metatable and mouse handlers)
+            local home = mp._zedFrom or v
+            check(mp.parent ~= sw and mp.parent == home and getmetatable(mp) ~= ZeD_MMSpawnMap,
+                "NG23: once Spawn is left the game's map panel goes back to the game's spawn screen with the game's own handlers (else safe mode shows the game's screen with no working map)",
+                "a child of ZeD's spawn window " .. tostring(mp.parent == sw) .. ", back in its home " .. tostring(mp.parent == home) .. ", ZeD's map metatable " .. tostring(getmetatable(mp) == ZeD_MMSpawnMap)
+                .. " (moved in on show: " .. tostring(keep.mapIn) .. "); safe mode itself not turned on here")
         else skip("NG23: the map panel after Spawn", "no map panel or no Spawn window") end
         local c = X.ccm()
-        local fig = c and c.avatarPanel and c.avatarPanel.avatarPanel
+        local ap = c and c.avatarPanel
+        local fig = ap and ap.avatarPanel
         local lw = K.win("looks")
         if fig and lw then
-            check(fig.parent ~= lw, "NG62: once Looks is left the game's 3D figure goes back to the game's looks screen (else safe mode shows the game's screen with no figure)",
-                "a child of ZeD's looks window " .. tostring(fig.parent == lw) .. " (moved in on show: " .. tostring(keep.figIn) .. "); safe mode itself not turned on here")
+            check(fig.parent ~= lw and fig.parent == ap, "NG62: once Looks is left the game's 3D figure goes back to the game's avatar panel (else safe mode shows the game's screen with no figure)",
+                "a child of ZeD's looks window " .. tostring(fig.parent == lw) .. ", back in the game's avatar panel " .. tostring(fig.parent == ap) .. " (moved in on show: " .. tostring(keep.figIn) .. "); safe mode itself not turned on here")
         else skip("NG62: the figure after Looks", "no figure or no Looks window") end
+        note("NG23, NG62: a known gap Build left, not staged here (safe mode is not turned on or off in this script): safe mode turned off while the desk is on Spawn or Looks shows an empty map or figure box until that window is opened again")
         K.errCheck("NG0: the way back")
     end)
 end
@@ -1933,7 +2082,8 @@ function X.putBack()
             end
         end)
         pcall(function() local w = K.win("looks"); if w and rawget(w, "play") then rawset(w, "play", nil) end end)
-        pcall(function() local w = K.win("newgame"); if w then w._challengeItems = nil; w.challenges = false end end)
+        pcall(X.lkVoiceBack)   -- (NG61's stand-in getSoundManager, should a stage have stopped before it went)
+        pcall(function() local w = K.win("newgame"); if w then w._challengeItems = nil; w.challenges = false; w.bodyScroll = 0 end end)
         pcall(function() if keep.pen0 then getSandboxOptions():getOptionByName("NegativeTraitsPenalty"):setValue(keep.pen0) end end)
         pcall(function() local p = X.prof(); if p and keep.bopts0 then p.savedBuilds.options = K.copy(keep.bopts0); p.savedBuilds.selected = keep.bsel0 end end)
         pcall(function() local v = X.ccm(); if v and keep.oopts0 then v.savedBuilds.options = K.copy(keep.oopts0); v.savedBuilds.selected = keep.osel0 end end)
@@ -2012,6 +2162,7 @@ else
     X.trNext()
     X.lkLook()
     X.lkOutfits()
+    X.lkVoice()
     X.walkBack()
     mark()
     X.putBack()
