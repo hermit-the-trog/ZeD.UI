@@ -135,6 +135,8 @@ Option 1 is QA's pick in each.
 Hermit's picks (Nov 27 2026): "1 (1); 2 (2); 3 (1); 4 (2); 5 (1); 6 (2); 7 (1); 8 (1); 9 (1)".
 - To build: 1 the quit questions land the pad on Cancel; 3 B in the welcome goes back one step (Skip only its own button); 5 a chord pick counts as a change Discard undoes; 6 No mods says in its question that it turns ZeD-GUI off; 7 Homepage asks first; 8 leaving the load order page after a move asks "Keep the new order?"; 9 a new account may have an empty password.
 - No change: 2 the terms' Quit quits at once (the game's way); 4 Reset to defaults resets everything, as today.
+- Built in fix/menucalls (main 50aa56b4a). MM25 is a line in the Profiles band (No mods has no question of its own): "No mods turns ZeD-GUI off too: with this list the game's own screens come back." Checked by the mu_ scripts at 787aa4587: desk 188, New game 116, Load/Join/Host 104, Options 195, Mods 123 at both sizes, all 0 fail; mod order 83 at both sizes with LC93DemoStove on too (mu_two_mods.txt), so MO40's move half runs (with ZeD alone 77, MO40 after a move skipped). MENUS SWEEP DONE.
+- Left for Build (cosmetic): the Keep the new order? question's Cancel reads "CANCEL" (button case).
 
 1. **DK13, the quit question on a pad:** the pad lands on Exit, so A then A quits. (1) land on Cancel, as the notepad, Documents and Mail questions do; (2) keep it on Exit.
 2. **DK48, the terms' Quit:** it quits at once, as the game's does, while every other quit on the desk asks. (1) ask, like the rest of the desk; (2) keep the game's way.
