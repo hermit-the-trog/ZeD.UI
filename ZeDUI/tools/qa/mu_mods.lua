@@ -1450,7 +1450,8 @@ function X.profiles()
         check(c.why == nil and not c.confirm and c.held == nil and c.kept, "MM53: Cancel on that question keeps the profile as it was and drops the pasted text",
             tostring(c.why) .. ", question " .. tostring(c.confirm) .. ", text held " .. tostring(c.held ~= nil) .. ", " .. Q.A2 .. " as it was " .. tostring(c.kept))
         -- Replace: the question's button, w:pastePreset(true)
-        keep.m53rep = (w.confirm == "preplace") and K.press(w, "confirm:yes") or ("the question did not open again (" .. tostring(w.confirm) .. ")")
+        -- (QA: K.press gives nil on success, so no "a and b or c" here)
+        if w.confirm == "preplace" then keep.m53rep = K.press(w, "confirm:yes") else keep.m53rep = "the question did not open again (" .. tostring(w.confirm) .. ")" end
     end))
     after(250, M(function(w)
         if keep.noProf then return end
