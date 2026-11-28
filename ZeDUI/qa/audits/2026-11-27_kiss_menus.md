@@ -29,12 +29,12 @@ After Build's fixes (fix/menus, main d71db6c3a; scripts refit 6a038034f, 8c1897a
 | --- | --- | --- | --- |
 | Desk | 185 pass | 185 pass | nothing |
 | New game | 116 pass | 116 pass | nothing |
-| Load, Join, Host | 102 pass | 102 pass | nothing |
-| Options and welcome | 182 pass, 1 fail | 182 pass, 1 fail | OP43: the Find box can still take a click under Back's question (Build's known gap) |
+| Load, Join, Host | 102 pass (103 with the LJ35 title check, fix/menus2) | 102 pass (103) | nothing |
+| Options and welcome | 182 pass, 1 fail; 183 pass after fix/menus2 | 182 pass, 1 fail; 183 pass after fix/menus2 | nothing (OP43 fixed in fix/menus2, main 058f5e572) |
 | Mods | 116 pass | 116 pass | nothing |
 | Folders and load order | 76 pass | 76 pass | nothing |
 
-- Still open for Build: OP43; and the Connect to form prints ip : port in its title and heading whatever Streamer mode says (ZeD_MainMenuJoinMore.lua:487-488, 505), found while refitting LJ35.
+- fix/menus2 (main 058f5e572): OP43 (Find is read-only and unfocused under a question) and the Connect to title and heading masked under Streamer mode (found while refitting LJ35). EVERY MENUS CHECK PASSES AT BOTH SIZES (mu_opt and mu_ljh rerun on d4fbb1088).
 - Build's other known gaps: safe mode turned off while on Spawn or Looks leaves an empty map or figure box until reopened (NG23, NG62, not staged); LJ43 has no port range check; LJ40's new account is not kept.
 - Test faults found in the refit: "a and K.press(...) or b" read every successful answer (nil) as "no question open" (DK19, DK59, MM2, MM53); a masked port field reads back as stars (LJ43).
 
