@@ -25,8 +25,12 @@ After Hermit's calls (fix/infocalls, main 0fef151b8; runs sk5, jn5, rd7, mz5):
 | --- | --- | --- | --- |
 | Skills and Info | 346 pass | 346 pass | nothing |
 | Journal | 328 pass | 328 pass | nothing |
-| Radio | 1 fail (R21) | 324 pass | R21: the disc stops only at the game's 2.5 s update (to Build; the check now asks for 1 s) |
-| Maps | 333 pass, 2 fail | 332 pass, 4 fail | MP53 with Put things back on: the read map is not held (to Build) |
+| Radio | 324 pass (rd8) | 324 pass (rd8) | nothing |
+| Maps | 335 pass (mz6) | 336 pass (mz6) | nothing |
+
+- MP53 (fix/putback2, main e39448814): the game's Read Map moves the map in on one tick and queues the read on the next; a move-only run is now carried to the read of the same map for 30 s, so the move back is held until the paper is put away.
+- R21: ZeD stops the disc at the press; the game's DeviceData then winds down about 2.5 s (stopMediaCounter 150) before isPlayingMedia goes false, the same as with its own radio window. The check allows 3 s (2497 and 2502 ms in rd8).
+- mz.txt now expects B13's staged map build exception (the runner failed the script on it though every check passed).
 
 The skips are multiplayer cases, split screen, other languages and staging the game can't do in single player.
 
