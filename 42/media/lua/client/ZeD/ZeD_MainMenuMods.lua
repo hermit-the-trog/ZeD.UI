@@ -152,15 +152,19 @@ function ZeD_MMMods:onShow()
     ZeD.ModSafety.reset()
     ZeD.ModPicks.reset()
     if ZeD.ModReset then ZeD.ModReset.forget() end
-    self._resetPending = nil
+    -- (MM5, Nov 27 2026: a reload the last visit left waiting, a mod's settings reset or its files switched, stays
+    -- waiting until Accept: leaving for Options and back no longer forgets it. accept clears them)
+    local keepReset, keepFiles, keepPicks = self._resetPending, self._filesChanged, self._picksRefreshed
+    self._accepting, self._leaveGo, self._leaveAfter = nil, nil, nil   -- (DK19, MM2: askLeave)
     self._picksOffWith = nil   -- (toggle: the mod that took ZeD picks off on this visit)
     self._optSeen, self._optKept, self._palette = {}, {}, nil
     local wrote = 0
     pcall(function() wrote = ZeD.ModPicks.sync(jlist(getActivatedMods())) end)
-    self._picksRefreshed = wrote > 0
+    self._picksRefreshed = keepPicks or wrote > 0
+    self._resetPending = keepReset
     -- the Files tab (ZeD_MainMenuModsFiles): read afresh; an error card's Open in Mods left its file
     -- for this visit (ZeD_ModFiles.takeJump): that mod picked, on its Files tab, at that file
-    self.fileSel, self._filesSeen, self._filesChanged, self._fileJump = nil, {}, nil, nil
+    self.fileSel, self._filesSeen, self._filesChanged, self._fileJump = nil, {}, keepFiles, nil
     -- (the list's mods are read after the screen shows: the jump waits for them, resolveJump)
     self._pendingJump = nil
     if ZeD.ModFiles then
@@ -625,7 +629,15 @@ function ZeD_MMMods:accept()
         force = not needed
     end
     if self.helperLast then self:helperLast() end
+    -- (DK19, MM2: the move a leave question held back, when this Accept is its answer; and no second question on
+    -- the way out, vanilla's redirects included)
+    local go = self._leaveAfter
+    self._leaveAfter = nil
+    self._accepting = true
     m:acceptChanges()        -- Load / New Game land back on the monitor through the redirects
+    self._accepting = nil
+    -- (MM5: the player's own list accepted, nothing waits for a reload any more)
+    if not (server or m.isNewGame or m.loadGameFolder) then self._resetPending, self._filesChanged, self._picksRefreshed = nil, nil, nil end
     if force then
         ms().bottomPanel:setVisible(false)
         getCore():ResetLua("default", "modsChanged")
@@ -634,6 +646,7 @@ function ZeD_MMMods:accept()
     if inst.joyfocus then inst:clearJoypadFocus(); inst.joyfocus.focus = inst.returnToUI; updateJoypadFocus(inst.joyfocus) end
     -- server settings' mods: the settings window is back on the monitor (its redirect); the
     -- controller goes to the desk, not to vanilla's hidden screen
+    if go then MM.leaveRun(go); return end
     if server then if MM.view == "mods" then MM.toVanilla() else MM.showView(MM.view) end; return end
     if MM.view == "mods" and ms() and ms().bottomPanel:isVisible() then MM.showView("main") end
 end
@@ -715,6 +728,18 @@ function ZeD_MMMods:back()
     if self.page == "picks" then self:leavePicks(); return end
     if self.page ~= "list" then self:leaveOrder(false); return end
     if self:changed() then self:setConfirm("back") else self:accept() end
+end
+
+-- (DK19, MM2, Nov 27 2026) Left any way but Back or Accept (the menu bar, an icon, Quit to restart, the power
+-- button) with mods turned on or off: the list page first, as Back goes, then Back's question; Discard changes or
+-- Keep goes on with the move (accept, MM.leaveGuard). Nothing changed: the move goes through as before.
+function ZeD_MMMods:askLeave(go, view)
+    if self._accepting or not self:changed() then return false end
+    if self.page ~= "list" then self:back() end
+    if self.page ~= "list" or not self:changed() then return false end
+    self:setConfirm("back")
+    self._leaveGo = go
+    return true
 end
 
 -- PROFILES
@@ -1086,6 +1111,7 @@ local SAFE_ANSWER = { back = "confirm:no", delete = "confirm:no", update = "conf
 --- Open a question in the band (false closes it); a FIELD_MODES mode also shows the band's text field.
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
+    self._leaveGo = nil   -- (DK19: a move held back by askLeave goes with its question)
     -- (a question opened from no question: the controller's stop it was asked from, for B to come back to; a caller that
     -- named its own button keeps it. The leave question once had none, and B, B left the focus on nothing)
     if mode and not self.confirm and self._backFocus == nil then self._backFocus = self.focusId end
@@ -1184,8 +1210,9 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         -- Cancel stays; Discard changes drops what was done; Keep (vanilla's word) goes on with it
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
-            { "confirm:discard", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:discard() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") },
-            { "confirm:yes", getText("ContextMenu_Keep"), function() self:accept() end, "primary" } },
+            -- (DK19: either goes on with the move askLeave held back, through accept)
+            { "confirm:discard", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self._leaveAfter = self._leaveGo; self:discard() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") },
+            { "confirm:yes", getText("ContextMenu_Keep"), function() self._leaveAfter = self._leaveGo; self:accept() end, "primary" } },
             ZeD.tr("UI_ZeD_Mods_AskKeep"))
     elseif self.confirm == "template" then
         UI.stripSpecs(self, stripY, w, row, {}, {
@@ -2570,6 +2597,15 @@ function MM.openMods()
     local inst = ModSelector and ModSelector.instance
     if not (m and inst) or m.delay > 0 then return end
     MM.ctx.open = nil
+    -- (MM2, Nov 27 2026: Mods picked again while the window is up with a change waiting reloaded the list and made the
+    -- change its baseline: the player's own list stays as it is; a save's, a new game's or a server's asks Back's
+    -- question first, MM.leaveGuard)
+    local up = MM.view == "mods" and MM.root and MM.root.modsWin
+    if up and up.changed and up:changed() then
+        local md = inst.model
+        if not (md.isNewGame or md.loadGameFolder or md.isServerSettingsMods) then return end
+        if MM.leaveGuard(MM.openMods, "mods") then return end
+    end
     inst.model.isNewGame = false
     inst.model.loadGameFolder = nil
     inst.model.isServerSettingsMods = false

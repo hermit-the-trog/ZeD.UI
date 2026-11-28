@@ -122,6 +122,9 @@ function ZeD_MMWorkshop:onShow()
     if self._fromEditor then   -- (back from the description editor: the form stays as it was; only the folder is read again)
         self._fromEditor = nil; self.focusId = nil; self:checkContents(); return
     end
+    -- (DK58, Nov 27 2026: left by the menu bar, an icon or the power button while an upload waits for Steam and
+    -- come back to: the window is as it was, still waiting, so Steam's answer lands and Upload stays off)
+    if self.busy then self.focusId = nil; return end
     self.busy = nil
     self.note = nil
     self.scroll, self.fscroll = 0, 0
@@ -315,11 +318,25 @@ end
 function ZeD_MMWorkshop:back()
     if self.busy then return end
     if self.confirm then self:setConfirm(false); return end
-    local any = false
-    for _ in pairs(self.unsaved) do any = true end
-    if any then self:setConfirm("leave"); return end
+    if self:anyUnsaved() then self:setConfirm("leave"); return end
     MM.clickSound()
     MM.showView("main")
+end
+
+--- True while a folder's edits are not saved.
+function ZeD_MMWorkshop:anyUnsaved()
+    for _ in pairs(self.unsaved or {}) do return true end
+    return false
+end
+
+-- (DK19, DK59, Nov 27 2026) Left any way but Back (the menu bar, an icon, the power button) with edits not saved:
+-- Back's question first; Discard changes or Save then goes on with the move (MM.leaveGuard). An upload waiting for
+-- Steam is let go: the window keeps it (onShow, DK58). The description editor is the window's own step.
+function ZeD_MMWorkshop:askLeave(go, view)
+    if view == "wsdesc" or self.busy or not self:anyUnsaved() then return false end
+    self:setConfirm("leave")
+    self._leaveGo = go
+    return true
 end
 
 -- The answer the controller lands on when a question opens: a question that
@@ -327,6 +344,7 @@ end
 local SAFE_ANSWER = { leave = "confirm:cancel", upload = "confirm:no" }
 function ZeD_MMWorkshop:setConfirm(mode)
     if self.confirm == mode then return end
+    self._leaveGo = nil   -- (DK19: a move held back by askLeave goes with its question)
     -- (B on a question goes back to the stop it was asked from)
     if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
@@ -790,14 +808,17 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
         -- Cancel stays; Discard changes drops what was edited; Save keeps it
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:cancel", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
+            -- (DK19: either goes on with the move askLeave held back, else to the main window as Back does)
             { "confirm:no", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function()
                 for _, x in ipairs(self.items) do pcall(function() x:readWorkshopTxt() end) end
-                self.unsaved = {}; self:setConfirm(false); MM.showView("main") end, "danger" },   -- (setConfirm clicks)
+                local go = self._leaveGo
+                self.unsaved = {}; self:setConfirm(false); MM.leaveRun(go, "main") end, "danger" },   -- (setConfirm clicks)
             { "confirm:yes", getText("UI_btn_save"), function()
                 self:apply()
                 for _, x in ipairs(self.items) do if self.unsaved[x:getFolderName()] or x == self:item() then writeItem(x) end end
                 keepSave()
-                self.unsaved = {}; self:setConfirm(false); MM.showView("main") end, "primary" } },
+                local go = self._leaveGo
+                self.unsaved = {}; self:setConfirm(false); MM.leaveRun(go, "main") end, "primary" } },
             ZeD.tr("UI_ZeD_Workshop_AskSave"))
     else
         -- (was `it and self:blocker() or ...`, which read "Nothing to upload" whenever

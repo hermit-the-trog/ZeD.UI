@@ -989,11 +989,16 @@ end
 -- leaving the notepad by any way at all (the menu bar, a game starting): the unsaved words go to the draft at once
 local _show = MM._notesShowBase or MM.showView
 MM._notesShowBase = _show
-function MM.showView(view, joypadData)
+--- The notepad's unsaved words to the draft now, while it is the view (DK51, Nov 27 2026: also before a game
+--- started past MM.showView, File > Continue: ZeD_MainMenu.lua's fire).
+function MM.flushNotepad()
     local np = MM.root and MM.root.notepadWin
-    if np and np.doc and MM.view == "notepad" and view ~= "notepad" and np:dirty() then
+    if np and np.doc and MM.view == "notepad" and np:dirty() then
         pcall(N.saveDraft, np.doc.id or 0, np.doc.name, np:text())
     end
+end
+function MM.showView(view, joypadData)
+    if view ~= "notepad" then MM.flushNotepad() end
     return _show(view, joypadData)
 end
 
