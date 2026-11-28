@@ -236,7 +236,7 @@ C.vis, C.uiStatus = true, "starting"
 wh:onViewLeft()
 check("LJ2: leaving while a server starts leaves it running", hidden == 1 and C.vis == true)
 local MMsrc = read("42/media/lua/client/ZeD/ZeD_MainMenu.lua")
-check("LJ2: MM.showView tells the window it left", MMsrc:find("if was and was ~= w and was.onViewLeft then was:onViewLeft() end", 1, true) ~= nil)
+check("LJ2: MM.showView tells the window it left", MMsrc:find("if was and was ~= w and was.onViewLeft then pcall(was.onViewLeft, was) end", 1, true) ~= nil)
 
 print(string.format("ljh_menu_fixes_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end

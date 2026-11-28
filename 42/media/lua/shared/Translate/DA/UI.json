@@ -6672,5 +6672,20 @@
     "UI_ZeD_Settings_UiSounds": "Brugerfladelyde",
     "UI_ZeD_Settings_UiSoundsTip": "Hvor højt ZeD's egne klik lyder i dens vinduer og menuer. Lav spiller dem svagere; Fra spiller ingen. Spillets egne lyde og lydstyrkeindstillinger forbliver som de er.",
     "UI_ZeD_Settings_UiSoundsFull": "Fuld",
-    "UI_ZeD_Settings_UiSoundsQuiet": "Lav"
+    "UI_ZeD_Settings_UiSoundsQuiet": "Lav",
+    "UI_ZeD_Options_GameSoundsTip": "Hver af spillets lyde for sig: en lydstyrke fra 0 til 200 procent og Afspil for at høre den.",
+    "UI_ZeD_Options_ReloadSounds": "Genindlæs spillets lyde",
+    "UI_ZeD_Mods_AskPasteReplace": "%1 er allerede en profil. Erstat den med den indsatte tekst?",
+    "UI_ZeD_Mods_RuleFixHand": "Ret de røde rækker i hånden for at sætte rækkefølgen",
+    "UI_ZeD_Mods_SayPasteBadName": "Intet tilføjet: %1 kan ikke være et profilnavn",
+    "UI_ZeD_Mods_SayPasteReplaced": "%1 erstattet med den indsatte tekst",
+    "UI_ZeD_Traits_AskReplace": "Erstat build %1?",
+    "UI_ZeD_Traits_Replace": "Erstat",
+    "UI_ZeD_Order_DetNeedsMissing": "Kræver %1: ikke installeret.",
+    "UI_ZeD_Order_HintNeedsMissing": "kræver %1 (ikke installeret)",
+    "UI_ZeD_Folders_AskDeleteMissingOne": "Den glemmer også 1 mod, der ikke er installeret.",
+    "UI_ZeD_Folders_AskDeleteMissingMany": "Den glemmer også %1 mods, der ikke er installeret.",
+    "UI_ZeD_Folders_SayMovedCountOne": "1 mod flyttet til %1. Indlæsningsrækkefølgen ændres ikke.",
+    "UI_ZeD_Folders_SayOutCountOne": "1 mod flyttet til Uden mappe.",
+    "UI_ZeD_Welcome_LoadEmpty": "Intet indlæst: %1 har ingen indstilling, ZeD kan læse. Intet er ændret."
 }

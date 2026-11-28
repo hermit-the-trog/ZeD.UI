@@ -6666,5 +6666,20 @@
     "UI_ZeD_Settings_UiSounds": "Sons de l'interface",
     "UI_ZeD_Settings_UiSoundsTip": "Le volume des clics propres à ZeD dans ses fenêtres et menus. Faible les joue plus doucement ; Désactivé n'en joue aucun. Les sons du jeu et ses réglages de volume restent tels quels.",
     "UI_ZeD_Settings_UiSoundsFull": "Complet",
-    "UI_ZeD_Settings_UiSoundsQuiet": "Faible"
+    "UI_ZeD_Settings_UiSoundsQuiet": "Faible",
+    "UI_ZeD_Options_GameSoundsTip": "Chaque son du jeu à part : un volume de 0 à 200 pour cent et Jouer pour l'entendre.",
+    "UI_ZeD_Options_ReloadSounds": "Recharger les sons du jeu",
+    "UI_ZeD_Mods_AskPasteReplace": "%1 est déjà un profil. Le remplacer par le texte collé ?",
+    "UI_ZeD_Mods_RuleFixHand": "Corrigez les lignes rouges à la main pour fixer l'ordre",
+    "UI_ZeD_Mods_SayPasteBadName": "Rien ajouté : %1 ne peut pas être un nom de profil",
+    "UI_ZeD_Mods_SayPasteReplaced": "%1 remplacé par le texte collé",
+    "UI_ZeD_Traits_AskReplace": "Remplacer le build %1 ?",
+    "UI_ZeD_Traits_Replace": "Remplacer",
+    "UI_ZeD_Order_DetNeedsMissing": "Requiert %1 : non installé.",
+    "UI_ZeD_Order_HintNeedsMissing": "requiert %1 (non installé)",
+    "UI_ZeD_Folders_AskDeleteMissingOne": "Il oublie aussi 1 mod qui n'est pas installé.",
+    "UI_ZeD_Folders_AskDeleteMissingMany": "Il oublie aussi %1 mods qui ne sont pas installés.",
+    "UI_ZeD_Folders_SayMovedCountOne": "1 mod déplacé vers %1. L'ordre de chargement ne change pas.",
+    "UI_ZeD_Folders_SayOutCountOne": "1 mod déplacé vers Sans dossier.",
+    "UI_ZeD_Welcome_LoadEmpty": "Rien chargé : %1 ne contient aucun réglage que ZeD sait lire. Rien n'a changé."
 }
