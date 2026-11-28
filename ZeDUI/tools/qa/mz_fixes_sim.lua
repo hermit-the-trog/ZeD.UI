@@ -207,15 +207,21 @@ if QUEUE[1] then QUEUE[1]:complete(); QUEUE[1]:perform() end
 check("the action's end opens ZeD's window on the paper, not the game's",
     logHas("zed:open:MuldraughMap") and not logHas("game:window:MuldraughMap") and WIN._mapPaperItem == map, table.concat(LOG, ","))
 check("the stash and the read done once (by the action)", logCount("stash:MuldraughMap") == 1 and logCount("read:MuldraughMap") == 1, table.concat(LOG, ","))
--- MP53 (QA, Nov 27 2026): the game's Read Map queues its own moves (the floor to him); ZeD's Put things back must
--- not take them as the read's and queue the map back to the floor
+-- MP53 (the director's call, Nov 27 2026): with Put things back on, a read map goes back where it came from once
+-- the paper is put away. The game's Read Map moves are noted as the read's run (not hidden from Put back), and the
+-- read is marked at its end so Put back holds the move back until the fold (ZeD_PutBack.lua PB.release)
 do
     ZeD.PutBack = { queuing = false }
     LOG, QUEUE = {}, {}
     WIN._mapPopout, WIN._mapPaperItem = nil, nil
-    ISInventoryPaneContextMenu.onCheckMap(newItem("FloorMap"), 0)
-    check("MP53: Put things back sees the Read Map's moves as its own (queuing) and notes no run", PB_SEEN == true, tostring(PB_SEEN))
-    check("MP53: ... and is back to normal after", ZeD.PutBack.queuing == false)
+    local fm = newItem("FloorMap")
+    ISInventoryPaneContextMenu.onCheckMap(fm, 0)
+    check("MP53: the Read Map's moves are not hidden from Put things back (no queuing flag)", PB_SEEN == false, tostring(PB_SEEN))
+    check("MP53: ... and Put back's flag is untouched", ZeD.PutBack.queuing == false)
+    local act = QUEUE[1]
+    if act then act:complete(); act:perform() end
+    check("MP53: the read with the paper up is marked to hold its move back until the paper is put away",
+        act ~= nil and act._zedBackLater == true and WIN._mapPaperItem == fm, tostring(act and act._zedBackLater))
     ZeD.PutBack = nil
     LOG, QUEUE = {}, {}
     WIN._mapPopout, WIN._mapPaperItem = nil, nil

@@ -4790,7 +4790,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._thermalFigureZone     = nil
 
     -- Journal tab state
-    win._journalSubTab      = 1     -- the open page: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes, 5 on an add-on's
+    -- (the page picked before, kept for the session: JournalTab.keptPage, QA J1)
+    win._journalSubTab      = (ZeD.JournalTab and ZeD.JournalTab.keptPage and ZeD.JournalTab.keptPage(playerNum)) or 1     -- the open page: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes, 5 on an add-on's
     win._journalSubTabZones = nil   -- (nothing reads it: the pages are the header's Page pop-up, not a strip)
     win._mapDragging        = false -- (a map pan-drag; Maps is the World window's, see the map state below)
     win._journalScroll = ZeD_ScrollbarState:new()

@@ -213,6 +213,37 @@ if Events then
     if Events.OnGameStart then Events.OnGameStart.Add(startWatch) end
 end
 
+-- The page keys while paused (QA S3, Nov 27 2026): the game's own handler (xpUpdate.displayCharacterInfo,
+-- XpUpdate.lua:128) returns at game speed 0, so the Skills, Health, Info and Protection keys did nothing
+-- while paused, where ZeD_PausedLook says they open the Character window. This listener answers them only
+-- at speed 0 (in play the game's handler goes, and lands on ZeD's window through toggleView above), on the
+-- first player's page as the game's does, by the same toggleView, so the same key again closes it.
+local PAUSED_KEYS = {
+    { "TOGGLE_SKILL_PANEL", "IGUI_XP_Skills" },
+    { "TOGGLE_HEALTH_PANEL", "IGUI_XP_Health" },
+    { "TOGGLE_INFO_PANEL", "IGUI_XP_Info" },
+    { "TOGGLE_CLOTHING_PROTECTION_PANEL", "IGUI_XP_Protection" },
+}
+function Route.pausedKey(key)
+    if ZeD.Safe.on("charinfo") then return end
+    local okSp, sp = pcall(getGameSpeed)
+    if not (okSp and sp == 0) then return end
+    local playerObj = getSpecificPlayer(0)
+    if not playerObj or playerObj:isDead() or not getPlayerData(0) then return end
+    for _, k in ipairs(PAUSED_KEYS) do
+        local id = KeybindId and KeybindId[k[1]]
+        if id and getCore():isKey(id, key) then
+            local ok, err = pcall(function() getPlayerInfoPanel(0):toggleView(getText(k[2])) end)
+            if not ok then print("[ZeD] CharacterInfo: paused key: " .. tostring(err)) end
+        end
+    end
+end
+-- (added once: a Lua reload replaces Route.pausedKey, and the one listener calls the new one)
+if Events and Events.OnKeyPressed and not Route._pausedKeyOn then
+    Route._pausedKeyOn = true
+    Events.OnKeyPressed.Add(function(key) return Route.pausedKey(key) end)
+end
+
 -- ZeD coming back from safe mode: the game's window, if the game left it showing, goes
 -- (leave: nothing to hand back, the wrappers above ask ZeD.Safe.on() at each call)
 if ZeD.Safe.register then

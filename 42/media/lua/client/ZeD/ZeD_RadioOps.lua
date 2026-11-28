@@ -19,6 +19,7 @@
 -- elapsed time).
 -- ============================================================================
 
+require "TimedActions/ISBaseTimedAction"
 require "ZeD/Tr"
 require "ZeD/Tokens"
 
@@ -568,6 +569,86 @@ function O.eject(chr, part)
     local dd = part:getDeviceData()
     if not (dd and _get(dd, "hasMedia", false)) then return false end
     return mediaAction(chr, part, true, nil)
+end
+
+-- ---------------------------------------------------------------------------
+-- REACH — the game's own rules for working a set (QA B3, the director's call,
+-- Nov 27 2026). ZeD's faces list a set up to 10 tiles off, as the game's radio
+-- window stays open that far (ISRadioWindow:update), but a press works it only
+-- where the game would:
+--   * a set in the world (a TV, a placed radio) next to him: at once. Farther:
+--     he walks up to it first (luautils.walkAdj, the game's walk to a thing),
+--     and the press runs at the end of the walk. From a car seat: nothing.
+--   * a car's radio: only from a front seat of that car, as the game's vehicle
+--     menu offers its Device Options (ISVehicleMenu: seat <= 1).
+--   * a radio in the hands: at once.
+-- ---------------------------------------------------------------------------
+-- "now", "walk" or "no"
+function O.reach(chr, part)
+    if not (chr and part) then return "now" end
+    if instanceof(part, "VehiclePart") then
+        local v = chr:getVehicle()
+        if not v or v ~= _get(part, "getVehicle", nil) then return "no" end
+        local seat = _safe(function() return v:getSeat(chr) end, 9)
+        return seat <= 1 and "now" or "no"
+    end
+    if not instanceof(part, "IsoObject") then return "now" end
+    local sq = _get(part, "getSquare", nil)
+    local here = chr:getCurrentSquare()
+    if not (sq and here) then return "now" end
+    if math.floor(chr:getZ()) == sq:getZ() then
+        -- (luautils.walkAdj's own "near enough": within 1.6 tiles each way and reachable from where he stands)
+        local ws = _safe(function() return luautils.getCorrectSquareForWall(chr, sq) end, sq)
+        local dx = math.abs(ws:getX() + 0.5 - chr:getX())
+        local dy = math.abs(ws:getY() + 0.5 - chr:getY())
+        if dx <= 1.6 and dy <= 1.6 and _safe(function() return here:canReachTo(ws) end, false) then return "now" end
+    end
+    if chr:getVehicle() then return "no" end
+    return "walk"
+end
+
+-- the press, at the end of the walk up to the set (a one-tick action)
+if ISBaseTimedAction then
+ZeD_RadioPressAction = ZeD_RadioPressAction or ISBaseTimedAction:derive("ZeD_RadioPressAction")
+function ZeD_RadioPressAction:isValid() return true end
+function ZeD_RadioPressAction:update() end
+function ZeD_RadioPressAction:start() end
+function ZeD_RadioPressAction:stop() ISBaseTimedAction.stop(self) end
+function ZeD_RadioPressAction:getDuration() return 1 end
+function ZeD_RadioPressAction:perform()
+    -- (still out of reach at the end of the walk, a door shut on the way: the press is dropped, not walked again)
+    if O.reach(self.character, self.part) == "now" then
+        local ok, err = pcall(self.fn)
+        if not ok then print("[ZeD] RadioOps: press after the walk failed: " .. tostring(err)) end
+    end
+    ISBaseTimedAction.perform(self)
+end
+function ZeD_RadioPressAction:new(character, part, fn)
+    local o = ISBaseTimedAction.new(self, character)
+    o.part, o.fn = part, fn
+    o.maxTime = 1
+    o.stopOnWalk, o.stopOnRun = false, false
+    return o
+end
+end
+
+-- every press goes through the reach rule (the faces, the dash, the wheels all call these on ZeD.RadioOps)
+local PRESSES = { "power", "volStep", "mute", "tuneStep", "seek", "scanToggle", "recall", "store", "chStep", "memAdd",
+    "rename", "mic", "playStop", "insert", "eject", "setChannel" }
+for _, name in ipairs(PRESSES) do
+    local f = O[name]
+    if f then
+        O[name] = function(chr, part, a, b, c)
+            local r = O.reach(chr, part)
+            if r == "now" then return f(chr, part, a, b, c) end
+            if r == "no" then return false end
+            -- (walk: queued after what he is doing, so a second press on the way waits its turn too)
+            local sq = _get(part, "getSquare", nil)
+            if not (sq and ZeD_RadioPressAction and luautils.walkAdj(chr, sq, true)) then return false end
+            ISTimedActionQueue.add(ZeD_RadioPressAction:new(chr, part, function() return f(chr, part, a, b, c) end))
+            return true
+        end
+    end
 end
 
 -- ---------------------------------------------------------------------------

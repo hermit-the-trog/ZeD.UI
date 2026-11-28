@@ -179,15 +179,13 @@ end
 --- Queue the writing as vanilla does (the book out of the bag first); returns the write action and
 --- every action the call queued (the move out of the bag, then the write), for a busy check.
 --- onDone(page) runs once the line is on the page.
--- (QA J29, Nov 27 2026: the book was taken out of the bag, written in, then went back into it. ZeD's
--- Put things back (ZeD_PutBack.lua) took the move as the write's own and undid it after. The game's
--- transferIfNeeded queues the same move; it is queued here with _zedApart, Put back's mark for a
--- move the player asked for, so the book stays in the main inventory as the game leaves it.)
+-- (QA J29, the director's call, Nov 27 2026: with Put things back on, the book goes back into the bag it
+-- came from once the line is written, like any other thing an action takes out (ZeD_PutBack.lua notes the
+-- move as the write's own). With it off, it stays in the main inventory, as the game leaves it.)
 function N.write(playerObj, item, page, text, onDone)
     local queued = {}
     if luautils.haveToBeTransfered(playerObj, item) then
         local t = ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, item:getContainer(), playerObj:getInventory())
-        t._zedApart = true
         ISTimedActionQueue.add(t)
         queued[#queued + 1] = t
     end
