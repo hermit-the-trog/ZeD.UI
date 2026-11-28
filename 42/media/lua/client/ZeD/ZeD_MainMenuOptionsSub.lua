@@ -235,6 +235,12 @@ function O:prerender()
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     if self.sub == "pad" then self:drawPadPage(pad, bodyY, w - pad * 2, bodyH)
     else self:drawSoundsPage(pad, bodyY, w - pad * 2, bodyH) end
+    -- (QA OP44, Nov 27 2026: Apply here can raise the restart or screen-settings question, which this band never
+    -- drew, so it waited unseen until Back. While a question is up the band is the Options band, asking it.)
+    if self.confirm then
+        self:buildStrip(stripY, stripH, w)
+        return
+    end
     local rights = {}
     if self.sub == "pad" then
         rights[1] = { "apply", getText("UI_btn_apply"), function() self:apply(false) end, "primary", not self:anyChanged() }
@@ -907,7 +913,8 @@ local function subFocused(self)
 end
 
 function O:joyDir(dir)
-    if not self.sub then return base.joyDir(self, dir) end
+    -- (QA OP44, Nov 27 2026: a question asked on a sub-page is answered as on the main page)
+    if not self.sub or self.confirm then return base.joyDir(self, dir) end
     local b = subFocused(self)
     if b and b.sndRow and (dir == "left" or dir == "right") then
         local v = 1
@@ -928,7 +935,7 @@ function O:joyDir(dir)
     end
 end
 function O:joyB()
-    if not self.sub then return base.joyB(self) end
+    if not self.sub or self.confirm then return base.joyB(self) end   -- (QA OP44, Nov 27 2026)
     self:closeSub()
     MM.clickSound()
 end
@@ -944,7 +951,7 @@ function O:joyBumper(dir)
     end
 end
 function O:getFooterPrompts()
-    if not self.sub then return base.getFooterPrompts(self) end
+    if not self.sub or self.confirm then return base.getFooterPrompts(self) end   -- (QA OP44, Nov 27 2026)
     if not MM.gamepad() then return nil end
     local t = {}
     local b = subFocused(self)
@@ -974,7 +981,7 @@ function O:getStatusLine()
     return base.getStatusLine(self)
 end
 function O:keyEscape()
-    if not self.sub then return base.keyEscape(self) end
+    if not self.sub or self.confirm then return base.keyEscape(self) end   -- (QA OP44, Nov 27 2026)
     self:closeSub()
     MM.clickSound()
     return true
@@ -984,6 +991,7 @@ function O:keyOther(key)
     return false
 end
 function O:close()
+    if self.confirm == "monitor" then return base.close(self) end   -- (QA OP44, Nov 27 2026: Back answers it No first)
     if self.sub then self:closeSub(); MM.clickSound(); return end
     return base.close(self)
 end

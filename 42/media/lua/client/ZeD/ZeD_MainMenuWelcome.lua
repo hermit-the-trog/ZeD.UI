@@ -139,6 +139,10 @@ function ZeD_MMWelcome:onShow()
     end
     self.way, self.note = 1, nil
     self.input = MM.gamepad() and 2 or 1   -- (Playing with follows the device in use, KISS #53)
+    -- (QA OP74, Nov 27 2026: reopened from the Settings menu, Tutorial started on Show me around again, so Accept
+    -- turned a finished or refused tour back on. It starts on the stored answer: once the setup was answered, Show me
+    -- around only while the tour is still wanted; never answered, Show me around.)
+    self.tutorial = (WL.seen() and not WL.tutorialWanted()) and 2 or 1
     self.focusId = "way:1"
 end
 
@@ -156,6 +160,12 @@ function ZeD_MMWelcome:done()
     if self.way == 2 then
         local n = S().loadSetup and S().loadSetup()
         if not n then self.note = tr("UI_ZeD_Welcome_NoFile", S().SETUP_FILE); return end
+        -- (QA OP76, Nov 27 2026: a file with no line ZeD can take loaded 0 settings and closed as done, nothing
+        -- changed and no word. It says so and stays.)
+        if n == 0 then self.note = tr("UI_ZeD_Welcome_LoadEmpty", S().SETUP_FILE); MM.clickSound(); return end
+        -- (QA OP75, Nov 27 2026: the load put the theme on screen only; UI scale and Playing with waited for the next
+        -- menu or game. Everything stored goes on now, as the options window's own rows apply it.)
+        if S().reapplyFromOptions then pcall(S().reapplyFromOptions) end
         return finish(self, "0")
     end
     -- (the tour's words follow Playing with: "pad" gives the controller's, ZeD_Tutorial.lua)
