@@ -740,7 +740,7 @@ function ZeD_MMMods:back()
     -- (MM4, Nov 27 2026: the close box on Profiles took it for an order page; a Rename, Duplicate or
     -- Delete question open there followed onto the list page. Profiles' own way out closes it.)
     if self.page == "profiles" then self:leaveProfiles(); MM.clickSound(); return end
-    if self.page ~= "list" then self:leaveOrder(false); return end
+    if self.page ~= "list" then self:orderBack(); return end   -- (MO40, Nov 27 2026: after a move it asks)
     if self:changed() then self:setConfirm("back") else self:accept() end
 end
 
@@ -748,6 +748,8 @@ end
 -- button) with mods turned on or off: the list page first, as Back goes, then Back's question; Discard changes or
 -- Keep goes on with the move (accept, MM.leaveGuard). Nothing changed: the move goes through as before.
 function ZeD_MMMods:askLeave(go, view)
+    -- (MO40, Nov 27 2026: on the load or map order page after a move, "Keep the new order?" first; its answer goes on)
+    if not self._accepting and self:orderMoved() then return self:orderBack(go) end
     if self._accepting or not self:changed() then return false end
     if self.page ~= "list" then self:back() end
     if self.page ~= "list" or not self:changed() then return false end
@@ -1131,7 +1133,7 @@ end
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { back = "confirm:no", delete = "confirm:no", update = "confirm:no", reset = "confirm:no",
                       fdelete = "confirm:no", turnoff = "confirm:keep", sreplace = "confirm:no",
-                      preplace = "confirm:no" }   -- (preplace: Paste over a profile, MM53)
+                      preplace = "confirm:no", homepage = "confirm:no", orderkeep = "confirm:no" }   -- (preplace: Paste over a profile, MM53; homepage: MM31)
 --- Open a question in the band (false closes it); a FIELD_MODES mode also shows the band's text field.
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
@@ -1238,6 +1240,14 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             { "confirm:discard", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self._leaveAfter = self._leaveGo; self:discard() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") },
             { "confirm:yes", getText("ContextMenu_Keep"), function() self._leaveAfter = self._leaveGo; self:accept() end, "primary" } },
             ZeD.tr("UI_ZeD_Mods_AskKeep"))
+    elseif self.confirm == "orderkeep" then
+        self:orderKeepStrip(stripY, w, row)   -- (MO40, Nov 27 2026: ZeD_MainMenuModsOrder)
+    elseif self.confirm == "homepage" then
+        -- (MM31, Nov 27 2026: the game's question and its Yes / No)
+        UI.stripSpecs(self, stripY, w, row, {}, {
+            { "confirm:no", getText("UI_No"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_Yes"), function() local u = self._homeUrl; self._homeUrl = nil; self:setConfirm(false); if u and u ~= "" then openUrl(u) end end, "primary" } },
+            getText("UI_mods_openModUrl"))
     elseif self.confirm == "template" then
         UI.stripSpecs(self, stripY, w, row, {}, {
             cancel,
@@ -1289,12 +1299,18 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         local selDiff = self:profileDiff({ name = self.psel })
         local inUse = isUser and selDiff.inUse
         local loadOff = selDiff.noChange
+        -- (QA MM25, director's pick Nov 27 2026: No mods turns ZeD-GUI off too, as the game's own list does; the
+        -- band says so in a plain line while No mods is picked and ZeD-GUI is on)
+        local zedOff = nil
+        local zm = model() and model().mods and model().mods["ZeD_UI"]
+        if not isUser and zm and zm.isActive then zedOff = ZeD.tr("UI_ZeD_Mods_NoModsZeD") end
         UI.stripSpecs(self, stripY, w, row,
             { { "back", getText("UI_btn_back"), function() self:leaveProfiles(); MM.clickSound() end } },
             { { "new", ZeD.tr("UI_ZeD_Mods_BtnNew"), function() self:setConfirm("save") end },
               { "update", ZeD.tr("UI_ZeD_Mods_BtnUpdate"), function() self:setConfirm("update") end, "default", not isUser or inUse },
               { "more", ZeD.tr("UI_ZeD_Saves_More"), function() self:openMore() end },
-              { "load", getText("UI_mainscreen_load"), function() self:loadProfile({ name = self.psel }) end, "primary", loadOff } })
+              { "load", getText("UI_mainscreen_load"), function() self:loadProfile({ name = self.psel }) end, "primary", loadOff } },
+            zedOff, zedOff ~= nil)
     elseif self.page == "picks" then
         self:pickStrip(stripY, w, row)
     elseif self.page ~= "list" then
@@ -1909,7 +1925,9 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     local wid, src, url = nil, "", ""
     pcall(function() wid = info:getWorkshopID(); src = tostring(info:getSource() or ""); url = tostring(info:getUrl() or "") end)
     if wid and wid ~= "" then verb("workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(wid) end) end
-    if url ~= "" then verb("homepage", ZeD.tr("Homepage"), function() openUrl(url) end) end
+    -- (QA MM31, director's pick Nov 27 2026: Homepage asks before the browser opens, in the game's words
+    -- (ModInfoPanelParam's UI_mods_openModUrl); the pad lands on No)
+    if url ~= "" then verb("homepage", ZeD.tr("Homepage"), function() self._homeUrl = url; self:setConfirm("homepage") end) end
     cy = math.max(cy + (ptex and psz or 0), by + bh) + T.px(12)
     -- the tabs: About, Options, Sandbox, Conflicts (ZeD_MainMenuModsPanes)
     cy = self:drawDetailTabs(d, x, w, cy, vy, vh)
@@ -2422,7 +2440,9 @@ end
 
 function ZeD_MMMods:joyDir(dir)
     -- (a profile question keeps the focus in the band too: up or down onto a profile row would pick it) (QA B6-3)
-    if FIELD_MODES[self.confirm] or self.confirm == "delete" or self.confirm == "update" or self.confirm == "preplace" then
+    -- (MM31, MO40, Nov 27 2026: Homepage's and the order page's questions too)
+    if FIELD_MODES[self.confirm] or self.confirm == "delete" or self.confirm == "update" or self.confirm == "preplace"
+        or self.confirm == "homepage" or self.confirm == "orderkeep" then
         if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
         return
     end

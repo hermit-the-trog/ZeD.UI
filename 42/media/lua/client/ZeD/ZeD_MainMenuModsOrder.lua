@@ -132,6 +132,7 @@ function ZeD_MMMods:enterOrder(page)
     -- (and which mod took ZeD picks off, if one did: Back puts that memory back with the set)
     self._oPicksOffWith0 = self._picksOffWith
     self._orderStart = table.concat(self.order, ";")
+    self._orderStartLo = ZeD_MMMods.orderLoSig(self.oLo)   -- (MO40, Nov 27 2026: the pins and rules as they came)
     self.page = page
     self.oSel = 1
     self.scroll = 0
@@ -143,6 +144,8 @@ end
 --- pins and rules; false leaves both as they were.
 function ZeD_MMMods:leaveOrder(keep)
     local m = model()
+    -- (MO40, Nov 27 2026: a page left straight from its "Keep the new order?" takes the question with it)
+    if self.confirm == "orderkeep" then self._orderGo = nil; self:setConfirm(false) end
     if keep and m then
         if self.page == "order" then
             self:saveOrder(self.order)
@@ -183,6 +186,51 @@ function ZeD_MMMods:orderDone()
         self:orderChanged()
     end
     self:leaveOrder(true)
+end
+
+-- (QA MO40, director's pick Nov 27 2026) Leaving after a move asks "Keep the new order?", as the game's own load
+-- order page asks (ModLoadOrderPanel's Back): Keep goes through Done, Discard leaves as Back did, Cancel stays.
+-- A move is the list or its pins, rules and separators not as the page opened them.
+function ZeD_MMMods.orderLoSig(lo)
+    if not lo then return "" end
+    local t = { table.concat(lo.first or EMPTY, ","), table.concat(lo.last or EMPTY, ","), table.concat(lo.top or EMPTY, ",") }
+    for _, r in ipairs(lo.rules or EMPTY) do t[#t + 1] = tostring(r.id) .. ">" .. tostring(r.how) .. ">" .. tostring(r.other) end
+    for _, sp in ipairs(lo.seps or EMPTY) do
+        t[#t + 1] = tostring(sp.name) .. "/" .. tostring(sp.on ~= false) .. "/" .. tostring(sp.label) .. "/" .. table.concat(sp.ids or EMPTY, ",")
+    end
+    return table.concat(t, ";")
+end
+function ZeD_MMMods:orderMoved()
+    if self.page ~= "order" and self.page ~= "maps" then return false end
+    if table.concat(self.order or EMPTY, ";") ~= (self._orderStart or "") then return true end
+    return ZeD_MMMods.orderLoSig(self.oLo) ~= (self._orderStartLo or "")
+end
+--- Back, B, Escape and the menu bar's way out (askLeave: go is the move held back). No move: leaves as before.
+function ZeD_MMMods:orderBack(go)
+    if self:orderMoved() then
+        self:setConfirm("orderkeep")
+        self._orderGo = go
+        return true
+    end
+    self:leaveOrder(false)
+    return false
+end
+-- the question answered: keep = true through Done (it stays when a row is red), false as Back; then the held move
+function ZeD_MMMods:orderAnswer(keep)
+    local go = self._orderGo
+    self._orderGo = nil
+    self:setConfirm(false)
+    if keep then self:orderDone() else self:leaveOrder(false) end
+    if self.page ~= "list" or not go then return end
+    -- (the Mods page's own question follows when mods were turned on or off: askLeave)
+    if not self:askLeave(go) then MM.leaveRun(go) end
+end
+function ZeD_MMMods:orderKeepStrip(stripY, w, row)
+    UI.stripSpecs(self, stripY, w, row, {}, {
+        { "confirm:no", getText("UI_btn_cancel"), function() self._orderGo = nil; self:setConfirm(false) end },
+        { "confirm:discard", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:orderAnswer(false) end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") },
+        { "confirm:yes", getText("ContextMenu_Keep"), function() self:orderAnswer(true) end, "primary" } },
+        ZeD.tr("UI_ZeD_Order_AskKeep"))
 end
 
 -- Auto, tried on copies: true when its order would have no red row (MO32, Nov 27 2026)
@@ -1685,7 +1733,7 @@ function ZeD_MMMods:orderStrip(stripY, w, row)
     if isOrder and self.sepStrip then status, color = self:sepStrip(rights, res, status, color) end
     rights[#rights + 1] = { "auto", ZeD.tr("UI_ZeD_Mods_BtnAuto"), function() self:autoSort() end, "default", not isOrder, ZeD.tr("UI_ZeD_Order_HelpAuto") }
     rights[#rights + 1] = { "done", getText("UI_mods_Done"), function() self:orderDone() end, "primary", isOrder and res.firstBad ~= nil }
-    UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:leaveOrder(false) end } }, rights, status, true, color)
+    UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:orderBack() end } }, rights, status, true, color)   -- (MO40)
 end
 
 -- ----------------------------------------------------------------------------

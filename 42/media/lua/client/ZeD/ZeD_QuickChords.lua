@@ -137,8 +137,30 @@ local function load()
     end
 end
 
+-- (QA OP24, director's pick Nov 27 2026: in Options a chord pick or X is a change like any row's: it waits for Apply,
+-- and Discard brings the old chords back. Options holds the chords while it is open: picks change the list in memory
+-- (the rows and the help show them) and the file is written only at Apply. A holder that went away without an answer
+-- (its window no longer shown) drops what it held, as a Discard, before the next look.)
+local hold = nil   -- { snap = chord -> copy of the store's entry (false = none), alive = fn }
+
+local function copyEntry(s)
+    if not s then return false end
+    local w = {}
+    for i, v in ipairs(s.words or {}) do w[i] = v end
+    return { path = s.path, words = w }
+end
+local function sameEntry(a, b)
+    if not a or not b then return (not a) == (not b) end
+    if a.path ~= b.path then return false end
+    local wa, wb = a.words or {}, b.words or {}
+    if #wa ~= #wb then return false end
+    for i = 1, #wa do if wa[i] ~= wb[i] then return false end end
+    return true
+end
+
 local function save()
     if unread then return end
+    if hold then return end   -- (OP24: held by Options; written at Apply, Q.commit)
     -- (the whole text first: a Lua error on the way leaves the file as it was)
     local buf = {}
     local w = { write = function(_, s) buf[#buf + 1] = s end }
@@ -150,9 +172,66 @@ local function save()
     keepFile(table.concat(buf))
 end
 
+-- the store read, and a hold whose window went away without Apply or Discard dropped (OP24, Nov 27 2026)
+local function ready()
+    if not store then load() end
+    if hold and hold.alive then
+        local ok, live = pcall(hold.alive)
+        if not (ok and live) then
+            for _, c in ipairs(Q.CHORDS) do store[c] = copyEntry(hold.snap[c]) or nil end
+            hold = nil
+        end
+    end
+end
+
+--- (OP24) Options opened: chord picks wait for Apply. alive() says the holder is still shown.
+--- A hold already there (a window that never answered) is dropped first.
+function Q.hold(alive)
+    if not store then load() end
+    if hold then for _, c in ipairs(Q.CHORDS) do store[c] = copyEntry(hold.snap[c]) or nil end end
+    local snap = {}
+    for _, c in ipairs(Q.CHORDS) do snap[c] = copyEntry(store[c]) end
+    hold = { snap = snap, alive = alive }
+end
+--- (OP24) How many chords differ from what they were when the hold began (or at the last Apply).
+function Q.pendingCount()
+    if not hold then return 0 end
+    ready()
+    if not hold then return 0 end
+    local n = 0
+    for _, c in ipairs(Q.CHORDS) do if not sameEntry(store[c], hold.snap[c]) then n = n + 1 end end
+    return n
+end
+--- (OP24) Is this chord changed and not applied yet?
+function Q.isPending(chord)
+    if not hold then return false end
+    ready()
+    return hold ~= nil and not sameEntry(store[chord], hold.snap[chord])
+end
+--- (OP24) Apply: the chords as they are now go in the file; the hold goes on from here.
+function Q.commit()
+    if not store then load() end
+    local h = hold
+    hold = nil
+    save()
+    if h then Q.hold(h.alive) end
+end
+--- (OP24) Discard: the chords back as they were when the hold began (or at the last Apply); the hold goes on.
+function Q.revert()
+    if not hold then return end
+    if not store then load() end
+    for _, c in ipairs(Q.CHORDS) do store[c] = copyEntry(hold.snap[c]) or nil end
+end
+--- (OP24) Options closed: anything not applied is dropped and saves are at once again.
+function Q.release()
+    Q.revert()
+    hold = nil
+end
+function Q.held() return hold ~= nil end
+
 --- The chord's path (nil = nothing) and its words, for showing.
 function Q.get(chord)
-    if not store then load() end
+    ready()
     local s = store[chord]
     if s then return s.path, s.words end
     local d = Q.DEFAULTS[chord]
@@ -162,9 +241,9 @@ function Q.get(chord)
     return d[1], w
 end
 
---- Give a chord a path and the words to show for it; saved at once.
+--- Give a chord a path and the words to show for it; saved at once (while Options holds them, at its Apply: OP24).
 function Q.set(chord, path, words)
-    if not store then load() end
+    ready()
     local w = {}
     for i, s in ipairs(words or {}) do w[i] = tostring(s):gsub("[\t\r\n|]", " ") end
     store[chord] = { path = path, words = w }
@@ -174,7 +253,7 @@ end
 function Q.clear(chord) Q.set(chord, nil, {}) end
 --- Is the chord as it starts (no line of its own in the file)?
 function Q.isDefault(chord)
-    if not store then load() end
+    ready()
     return store[chord] == nil
 end
 --- The name of the chord's default action (the last of its words), or "None".
@@ -182,10 +261,10 @@ function Q.defaultName(chord)
     local d = Q.DEFAULTS[chord]
     return d and word(d[2][#d[2]]) or ZeD.tr("UI_ZeD_Chord_None")
 end
-function Q.reload() store = nil end   -- (the file is read again on the next look)
+function Q.reload() if hold then return end; store = nil end   -- (the file is read again on the next look)  (not while Options holds picks: OP24)
 --- Put a chord back to its default.
 function Q.reset(chord)
-    if not store then load() end
+    ready()
     store[chord] = nil
     save()
 end

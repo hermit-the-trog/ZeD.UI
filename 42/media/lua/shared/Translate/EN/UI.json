@@ -6944,5 +6944,7 @@
     "UI_ZeD_Settings_UiSounds": "UI sounds",
     "UI_ZeD_Settings_UiSoundsTip": "How loud ZeD's own clicks play in its windows and menus. Quiet plays them softer; Off plays none. The game's own sounds and volume settings are left as they are.",
     "UI_ZeD_Settings_UiSoundsFull": "Full",
-    "UI_ZeD_Settings_UiSoundsQuiet": "Quiet"
+    "UI_ZeD_Settings_UiSoundsQuiet": "Quiet",
+    "UI_ZeD_Mods_NoModsZeD": "No mods turns ZeD-GUI off too: with this list the game's own screens come back.",
+    "UI_ZeD_Order_AskKeep": "Keep the new order?"
 }

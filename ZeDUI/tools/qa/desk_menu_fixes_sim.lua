@@ -403,11 +403,13 @@ section("DK14: the quit question's footer follows the focused answer")
 MM.showView("main")
 local win = root.win
 win:setConfirm(true)
+-- (fitted Nov 27 2026 for DK13, the director's pick: the question opens on Cancel; Exit is a deliberate move)
+check("the question lands on Cancel (DK13)", win.focusId == "confirm:no", win.focusId)
 local fp = win:getFooterPrompts()
-check("on Quit: A Quit", fp[1].label == getText("IGUI_Exit"), fp[1].label)
-win.focusId = "confirm:no"
-fp = win:getFooterPrompts()
 check("on Cancel: A Cancel", fp[1].label == getText("UI_Cancel"), fp[1].label)
+win.focusId = "confirm:yes"
+fp = win:getFooterPrompts()
+check("on Quit: A Quit", fp[1].label == getText("IGUI_Exit"), fp[1].label)
 win:setConfirm(false)
 local tr = root.trashWin
 if tr then

@@ -2279,8 +2279,9 @@ function ZeD_MMWindow:setConfirm(on)
     if self.confirm == on then return end
     self.confirm = on
     clickSound()
-    -- the controller lands on the question's answer, and back on the button that asked
-    if on then self.focusId = "confirm:yes" else self.focusId = (self.kind == "main") and "quit" or "quitDesktop" end
+    -- the controller lands on Cancel, and back on the button that asked (DK13, Nov 27 2026: a quit question
+    -- lands on the safe answer, as the notepad, Documents and Mail do; A then A no longer quits)
+    if on then self.focusId = "confirm:no" else self.focusId = (self.kind == "main") and "quit" or "quitDesktop" end
 end
 
 -- The plain words the footer line shows for the menu's big buttons (a translation key each)

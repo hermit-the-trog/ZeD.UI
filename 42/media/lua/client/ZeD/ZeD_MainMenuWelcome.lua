@@ -193,7 +193,21 @@ function ZeD_MMWelcome:close()
     if self.way == 1 then return self:done() end
     return self:skip()
 end
-function ZeD_MMWelcome:back() self:skip() end
+-- (QA OP72, director's pick Nov 27 2026: Skip is only its own button. B, Escape and the way out no longer throw the
+-- picks away; they do what the close box does.)
+function ZeD_MMWelcome:back() self:close() end
+
+-- (OP72, Nov 27 2026) the pad's B goes back one step: from a choice or the band to the way cards (on the way that
+-- is picked); on the way cards, the first step, it does what the close box does, keeping the picks.
+function ZeD_MMWelcome:onFirstStep()
+    local f = self.focusId
+    return f == nil or string.sub(f, 1, 4) == "way:"
+end
+function ZeD_MMWelcome:stepBack()
+    if self:onFirstStep() then return self:close() end
+    self.focusId = "way:" .. (self.way or 1)
+    MM.hoverSound()
+end
 
 -- a radio and its word; returns the width it took
 local function radioWord(p, x, y, h, on, word, focused, hot)
@@ -388,15 +402,17 @@ function ZeD_MMWelcome:render()
     ZeD_Window.render(self)
 end
 
-function ZeD_MMWelcome:joyB() self:skip() end
+function ZeD_MMWelcome:joyB() self:stepBack() end   -- (OP72, Nov 27 2026: was Skip)
 -- (KISS #53: Y accepts on a pad, as the band's Accept does)
 function ZeD_MMWelcome:joyY() self:done() end
 function ZeD_MMWelcome:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = tr("UI_ZeD_Welcome_WaySkip") },
+    -- (OP72, Nov 27 2026: B says where it goes: Back from a choice, Close on the way cards)
+    local bWord = self:onFirstStep() and getText("UI_Close") or ZeD.btnCase(getText("UI_btn_back"))
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = bWord },
              { glyph = "Y", label = getText("UI_btn_accept") } }   -- (KISS #53)
 end
-function ZeD_MMWelcome:keyEscape() self:skip(); return true end
+function ZeD_MMWelcome:keyEscape() self:close(); return true end   -- (OP72, Nov 27 2026: as the close box, not Skip)
 function ZeD_MMWelcome:keyOther(key)
     if key == Keyboard.KEY_RETURN then self:done(); return true end
     return false

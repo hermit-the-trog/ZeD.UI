@@ -6681,5 +6681,7 @@
     "UI_ZeD_Folders_AskDeleteMissingMany": "Il oublie aussi %1 mods qui ne sont pas installés.",
     "UI_ZeD_Folders_SayMovedCountOne": "1 mod déplacé vers %1. L'ordre de chargement ne change pas.",
     "UI_ZeD_Folders_SayOutCountOne": "1 mod déplacé vers Sans dossier.",
-    "UI_ZeD_Welcome_LoadEmpty": "Rien chargé : %1 ne contient aucun réglage que ZeD sait lire. Rien n'a changé."
+    "UI_ZeD_Welcome_LoadEmpty": "Rien chargé : %1 ne contient aucun réglage que ZeD sait lire. Rien n'a changé.",
+    "UI_ZeD_Mods_NoModsZeD": "Aucun mod désactive aussi ZeD-GUI : avec cette liste, les écrans du jeu reviennent.",
+    "UI_ZeD_Order_AskKeep": "Garder le nouvel ordre ?"
 }
