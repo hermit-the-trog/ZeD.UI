@@ -106,7 +106,7 @@ function ZeD_MMMods:new()
     o.hideInc = false        -- Hide incompatible: mods that are off and cannot be turned on leave the list
     o.sel = nil
     o.scroll, o.dscroll = 0, 0
-    o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete" | "update" | "rename" | "dup" | "turnoff" | "reset"
+    o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete" | "update" | "rename" | "dup" | "turnoff" | "reset" | "preplace"
     o.preset = nil           -- the profile last loaded or saved
     o.psel = nil             -- the Profiles page's picked profile (nil: "No mods")
     o.note = nil             -- { text, untilMs }: what a toggle or a preset did
@@ -645,11 +645,27 @@ function ZeD_MMMods:defaultOnSet()
     return want
 end
 
+-- the load order the screen opened with: the running order of the mods on again, then any other
+-- mod on (Undo changes and Discard changes both write it)
+function ZeD_MMMods:openedOrder()
+    local m = model()
+    local order, seen = {}, {}
+    if not m then return order end
+    for _, id in ipairs(jlist(getActivatedMods())) do
+        if m.mods[id] and m.mods[id].isActive then order[#order + 1] = id; seen[id] = true end
+    end
+    for _, id in ipairs(jlist(m:getActiveMods():getMods())) do if not seen[id] then order[#order + 1] = id end end
+    return order
+end
+
 -- vanilla's NO answer: every changed mod back to how it was, favourites too, then accept
 function ZeD_MMMods:discard()
     local m = model()
     if not m then return end
     self:applyOnSet(self:defaultOnSet(), true)
+    -- (MM64, Nov 27 2026: the load order goes back too, as Undo changes does; its help says Discard
+    -- throws away what you changed, and a changed order stayed)
+    self:saveOrder(self:openedOrder())
     for _, d in pairs(m.mods or {}) do
         m.favs[d.modId] = d.defaultFav
         d.favorite = d.defaultFav
@@ -685,12 +701,7 @@ function ZeD_MMMods:revert()
     if not m then return end
     self._picksOffWith = nil   -- (the set the screen opened with stands, picks included: see picksSettle)
     self:applyOnSet(self:defaultOnSet(), true)
-    local order, seen = {}, {}
-    for _, id in ipairs(jlist(getActivatedMods())) do
-        if m.mods[id] and m.mods[id].isActive then order[#order + 1] = id; seen[id] = true end
-    end
-    for _, id in ipairs(jlist(m:getActiveMods():getMods())) do if not seen[id] then order[#order + 1] = id end end
-    self:saveOrder(order)
+    self:saveOrder(self:openedOrder())
     self:dirty()
     MM.clickSound()
     self:say(ZeD.tr("UI_ZeD_Mods_SayDiscarded"))
@@ -713,6 +724,9 @@ end
 
 function ZeD_MMMods:back()
     if self.page == "picks" then self:leavePicks(); return end
+    -- (MM4, Nov 27 2026: the close box on Profiles took it for an order page; a Rename, Duplicate or
+    -- Delete question open there followed onto the list page. Profiles' own way out closes it.)
+    if self.page == "profiles" then self:leaveProfiles(); MM.clickSound(); return end
     if self.page ~= "list" then self:leaveOrder(false); return end
     if self:changed() then self:setConfirm("back") else self:accept() end
 end
@@ -739,7 +753,8 @@ local function extrasSave() O.save() end
 local function presetIds(p)
     local ids, set = {}, {}
     for k, v in pairs(p or {}) do
-        local id = (type(v) == "string" and v ~= "" and not v:match("^%d+$")) and v or tostring(k):match("^[^\\]+")
+        -- (MM57, Nov 27 2026: the first run between backslashes, as vanilla's split; "\ModId" gave nil)
+        local id = (type(v) == "string" and v ~= "" and not v:match("^%d+$")) and v or tostring(k):match("[^\\]+")
         if id and not set[id] then set[id] = true; ids[#ids + 1] = id end
     end
     O.sort(ids)   -- (not table.sort: 1,500 ids in order overflow the game's quicksort, ZeD_ModOrder)
@@ -986,29 +1001,37 @@ function ZeD_MMMods:copyPreset()
 end
 
 -- a pasted share text (vanilla's addSharedPreset), its order kept as written
-function ZeD_MMMods:pastePreset()
+-- (MM53, Nov 27 2026: the name is read first, as vanilla reads it. A name already a profile asks before
+-- it is replaced (the "preplace" question; replace = its answer) and then says it was replaced; it once
+-- replaced at once and said "Nothing to add". A name no profile may take is refused with its reason.)
+function ZeD_MMMods:pastePreset(replace)
     local m = model()
-    local txt = self.field:getText()
+    local txt = replace and self._pasteText or self.field:getText()
     if not (m and txt and txt ~= "") then return end
-    local before = {}
-    for name in pairs(m.presets) do before[name] = true end
+    local sep = txt:find(":", 1, true)
+    local pname = sep and txt:sub(1, sep - 1) or ""
+    if pname == "" then self:setConfirm(false); self:say(ZeD.tr("UI_ZeD_Mods_SayNothingToAdd")); return end
+    if not self:nameFree(pname, pname) then self:setConfirm(false); self:say(ZeD.tr("UI_ZeD_Mods_SayPasteBadName", pname)); return end
+    local existed = m.presets[pname] ~= nil
+    if existed and not replace then
+        self:setConfirm(false)
+        self._pasteText = txt
+        self:setConfirm("preplace")
+        return
+    end
     m:addSharedPreset({ internal = "OK", parent = { entry = { getText = function() return txt end } } })
     m:saveModDataToFile()
     self:setConfirm(false)
-    for name in pairs(m.presets) do
-        if not before[name] then
-            local order = {}
-            local body = txt:match(":(.*)$") or ""
-            for v in body:gmatch("[^;]+") do local id = v:match("^[^\\]+"); if id and id:match("%S") then order[#order + 1] = id end end
-            extra(name)
-            O.entries()[name] = { order = order, saved = stamp() }
-            extrasSave()
-            self.psel = name
-            self:say(ZeD.tr("UI_ZeD_Mods_SayAdded", name))
-            return
-        end
-    end
-    self:say(ZeD.tr("UI_ZeD_Mods_SayNothingToAdd"))
+    if not m.presets[pname] then self:say(ZeD.tr("UI_ZeD_Mods_SayNothingToAdd")); return end
+    local order = {}
+    local body = txt:sub(sep + 1)
+    -- (MM57, Nov 27 2026: the first run between backslashes, as vanilla's split; "\ModId" ids were dropped)
+    for v in body:gmatch("[^;]+") do local id = v:match("[^\\]+"); if id and id:match("%S") then order[#order + 1] = id end end
+    extra(pname)
+    O.entries()[pname] = { order = order, saved = stamp() }
+    extrasSave()
+    self.psel = pname
+    self:say(ZeD.tr(existed and "UI_ZeD_Mods_SayPasteReplaced" or "UI_ZeD_Mods_SayAdded", pname))
 end
 
 function ZeD_MMMods:moreItems()
@@ -1082,7 +1105,8 @@ end
 -- The answer the controller lands on when a question opens: a question that
 -- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
 local SAFE_ANSWER = { back = "confirm:no", delete = "confirm:no", update = "confirm:no", reset = "confirm:no",
-                      fdelete = "confirm:no", turnoff = "confirm:keep", sreplace = "confirm:no" }
+                      fdelete = "confirm:no", turnoff = "confirm:keep", sreplace = "confirm:no",
+                      preplace = "confirm:no" }   -- (preplace: Paste over a profile, MM53)
 --- Open a question in the band (false closes it); a FIELD_MODES mode also shows the band's text field.
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
@@ -1094,7 +1118,7 @@ function ZeD_MMMods:setConfirm(mode)
     -- Rename, Duplicate, Delete and Replace keep the profile they were opened on, as folders keep _fTarget
     -- (beast W38, QA B6-3)
     if mode == "rename" or mode == "dup" or mode == "delete" or mode == "update" then self._pTarget = self.psel
-    elseif not mode then self._pTarget = nil end   -- (a closed question keeps no target to act on later) (QA B6-3)
+    elseif not mode then self._pTarget = nil; self._pasteText = nil end   -- (a closed question keeps no target to act on later) (QA B6-3; the pasted text, MM53)
     if FIELD_MODES[mode] then
         local pre = ""
         if mode == "rename" then pre = self._pTarget or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self._pTarget or "")
@@ -1207,6 +1231,14 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             cancel,
             { "confirm:yes", ZeD.tr("UI_ZeD_Mods_Replace"), function() self:updateProfile() end, "primary" } },
             ZeD.tr(on == 1 and "UI_ZeD_Mods_AskReplaceOne" or "UI_ZeD_Mods_AskReplaceMany", tostring(self._pTarget), on))   -- (QA B6-3)
+    elseif self.confirm == "preplace" then
+        -- (MM53, Nov 27 2026: a pasted text named for a profile there already asks first)
+        local t = self._pasteText or ""
+        local pname = t:sub(1, (t:find(":", 1, true) or 1) - 1)
+        UI.stripSpecs(self, stripY, w, row, {}, {
+            cancel,
+            { "confirm:yes", ZeD.tr("UI_ZeD_Mods_Replace"), function() self:pastePreset(true) end, "primary" } },
+            ZeD.tr("UI_ZeD_Mods_AskPasteReplace", pname))
     elseif (self.confirm == "fnew" or self.confirm == "frename" or self.confirm == "fdelete") and self.folderStrip then
         self:folderStrip(stripY, stripH, w, row)
     elseif FIELD_MODES[self.confirm] then
@@ -2363,7 +2395,7 @@ end
 
 function ZeD_MMMods:joyDir(dir)
     -- (a profile question keeps the focus in the band too: up or down onto a profile row would pick it) (QA B6-3)
-    if FIELD_MODES[self.confirm] or self.confirm == "delete" or self.confirm == "update" then
+    if FIELD_MODES[self.confirm] or self.confirm == "delete" or self.confirm == "update" or self.confirm == "preplace" then
         if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
         return
     end
