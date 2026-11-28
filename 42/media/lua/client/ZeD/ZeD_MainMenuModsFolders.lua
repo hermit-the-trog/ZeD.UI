@@ -462,18 +462,23 @@ function ZeD_MMMods:folderOpenClose(e)
         return
     end
     if e.f then
-        local ok = F.setOpen(e.fkey, not e.open)
-        if not ok then self:say(ZeD.tr("UI_ZeD_Folders_SayNoWrite")); return end
+        local ok, res = F.setOpen(e.fkey, not e.open)
+        if not ok then
+            -- (MO9, Nov 27 2026: the real reason; a folder gone was blamed on the file)
+            if res == "gone" then MM.hoverSound(); self:say(ZeD.tr("UI_ZeD_Folders_SayGone"))
+            elseif res == "nowrite" then self:say(ZeD.tr("UI_ZeD_Folders_SayNoWrite")) end
+            return
+        end
     else
         F.setUnfiledOpen(not e.open)
     end
     MM.clickSound()
     -- (the focus on a mod row now hidden: it lands on its folder)
+    -- (MO13, Nov 27 2026: read by the mod's folder, as Close all does; the view, built again after the
+    -- change, no longer holds the hidden row, so the focus stayed on it)
     self.focusId = self.focusId or e.sid
     if e.open and self.focusId ~= e.sid and self.focusId:sub(1, 5) == "mrow:" then
-        local v = self:folderView()
-        local k = v.at[self.focusId]
-        if k and v.ents[k].fkey == e.fkey then self.focusId = e.sid; self.fsel = e.fkey; self.sel = nil end
+        if (F.folderOf(self.focusId:sub(6)) or UNFILED) == e.fkey then self.focusId = e.sid; self.fsel = e.fkey; self.sel = nil end
     end
     self._fScrollTo = self.focusId
 end
@@ -574,11 +579,16 @@ function ZeD_MMMods:folderMove(ids, fid)
         return
     end
     MM.clickSound()
-    local n = #ids
     local one = m and m.mods[ids[1]] and tostring(m.mods[ids[1]].name) or tostring(ids[1])
     local f = fid and F.byId(fid)
-    if f then self:say(ZeD.tr(n == 1 and "UI_ZeD_Folders_SayMovedOne" or "UI_ZeD_Folders_SayMovedMany", n == 1 and one or n, f.name))
-    else self:say(ZeD.tr(n == 1 and "UI_ZeD_Folders_SayOutOne" or "UI_ZeD_Folders_SayOutMany", n == 1 and one or n)) end
+    -- (MO8, Nov 27 2026: the count F.assign moved, not the count picked: five picked, three there already,
+    -- said five were in it. One mod picked still names it.)
+    local n = (type(res) == "number") and res or #ids
+    if #ids == 1 then
+        if f then self:say(ZeD.tr("UI_ZeD_Folders_SayMovedOne", one, f.name))
+        else self:say(ZeD.tr("UI_ZeD_Folders_SayOutOne", one)) end
+    elseif f then self:say(ZeD.tr(n == 1 and "UI_ZeD_Folders_SayMovedCountOne" or "UI_ZeD_Folders_SayMovedMany", n == 1 and f.name or n, f.name))
+    else self:say(ZeD.tr(n == 1 and "UI_ZeD_Folders_SayOutCountOne" or "UI_ZeD_Folders_SayOutMany", n)) end
     self.msel = nil
     local onRow = (self.focusId or ""):sub(1, 5) == "mrow:"
     if onRow then
@@ -798,11 +808,18 @@ function ZeD_MMMods:folderFieldEnter(c)
     local except = (c == "frename") and self._fTarget or nil
     if F.nameProblem(text, except) then MM.hoverSound(); return end
     if c == "fnew" then
-        local ok, res = F.create(text)
+        local ok, res, resArg = F.create(text)
         local ids = self._fNewMove
         self._fNewMove = nil
         self:setConfirm(false)
-        if not ok then self:say(ZeD.tr("UI_ZeD_Folders_SayNoWrite")); return end
+        if not ok then
+            -- (MO9, Nov 27 2026: the real reason; 99 folders or a name taken meanwhile read as the file not written)
+            if res == "full" then MM.hoverSound(); self:say(ZeD.tr("UI_ZeD_Folders_HelpFull"))
+            elseif type(res) == "string" and res:sub(1, 15) == "UI_ZeD_Folders_" then
+                MM.hoverSound(); self:say(ZeD.tr(res, tostring(resArg or "")))
+            else self:say(ZeD.tr("UI_ZeD_Folders_SayNoWrite")) end
+            return
+        end
         MM.clickSound()
         self:say(ZeD.tr("UI_ZeD_Folders_SayMade", text))
         -- (made from a row's menu: that row's mod, or every picked one, goes in)
@@ -823,8 +840,12 @@ function ZeD_MMMods:folderDelete()
     self:setConfirm(false)
     if not f then self:say(ZeD.tr("UI_ZeD_Folders_SayGone")); return end
     local name = f.name
-    local ok = F.delete(fid)
-    if not ok then self:say(ZeD.tr("UI_ZeD_Folders_SayNoWrite")); return end
+    local ok, res = F.delete(fid)
+    if not ok then
+        -- (MO9, Nov 27 2026: a folder deleted outside meanwhile says it is gone, not that the file failed)
+        self:say(ZeD.tr(res == "gone" and "UI_ZeD_Folders_SayGone" or "UI_ZeD_Folders_SayNoWrite"))
+        return
+    end
     MM.clickSound()
     self:say(ZeD.tr("UI_ZeD_Folders_SayDeleted", name))
     if self.fsel == fid or self.focusId == "frow:" .. tostring(fid) then
@@ -849,6 +870,12 @@ function ZeD_MMMods:folderStrip(stripY, stripH, w, row)
         if n == 0 then ask = ZeD.tr("UI_ZeD_Folders_AskDeleteEmpty", name)
         elseif n == 1 then ask = ZeD.tr("UI_ZeD_Folders_AskDeleteOne", name)
         else ask = ZeD.tr("UI_ZeD_Folders_AskDeleteMany", name, n) end
+        -- (MO12, Nov 27 2026: the folder's lines for mods not installed go too; the question says so)
+        local m = model()
+        local gone = 0
+        for _, id in ipairs(F.membersOf(self._fTarget) or EMPTY) do if not (m and m.mods[id]) then gone = gone + 1 end end
+        if gone == 1 then ask = ask .. " " .. ZeD.tr("UI_ZeD_Folders_AskDeleteMissingOne")
+        elseif gone > 1 then ask = ask .. " " .. ZeD.tr("UI_ZeD_Folders_AskDeleteMissingMany", gone) end
         UI.stripSpecs(self, stripY, w, row, {}, {
             cancel,
             { "confirm:yes", getText("UI_btn_delete"), function() self:folderDelete() end, "danger", false, ZeD.tr("UI_ZeD_Folders_HelpDelete") } },
