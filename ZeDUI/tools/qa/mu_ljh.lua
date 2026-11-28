@@ -1014,6 +1014,8 @@ function X.joinOpen()
         pcall(function() opt = getCore():getOptionStreamerMode() end)
         check(mA and mP and true or false, "LJ35: with Streamer mode on, the server form masks the address and the port (as vanilla's ES:28, 38)",
             "address masked " .. tostring(mA) .. ", port masked " .. tostring(mP) .. " (the Streamer tick set in memory only; the option itself " .. tostring(opt) .. ")")
+        -- (QA, Nov 27 2026: a masked field reads back as stars, so LJ43 reads the port with the mask off)
+        pcall(function() w.fAddr:setMasked(false); w.fPort:setMasked(false) end)
         local def = tostring(w.fPort:getText() or "")
         w.fPort:setText("99999999")
         local p = w:serverProblems()

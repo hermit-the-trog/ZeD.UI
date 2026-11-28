@@ -1191,7 +1191,7 @@ function X.leaving()
             "view " .. tostring(a.view) .. ", question " .. tostring(a.confirm) .. ", move held " .. tostring(a.held) .. ", on " .. tostring(a.focus) .. ", changed " .. tostring(a.changed))
         if not (w and MM.view == "mods") then keep.m2gone = true; return end
         -- Keep editing: the question shuts, the move goes with it, the change stays
-        local why = (w.confirm == "back") and K.press(w, "confirm:no") or "no question open"
+        local why = "no question open"; if w.confirm == "back" then why = K.press(w, "confirm:no") end
         keep.m2keep = { why = why, view = MM.view, confirm = w.confirm, held = w._leaveGo ~= nil, changed = w:changed() }
         -- asked again, for Discard changes this time
         K.try("MM2: the main window again", function() MM.showView("main") end)
@@ -1435,7 +1435,7 @@ function X.profiles()
             "MM53: Paste over an existing profile's name asks before it replaces (the question on Cancel, nothing replaced yet)",
             "question " .. tostring(a.confirm) .. ", on " .. tostring(a.focus) .. ", text held " .. tostring(a.held == keep.m53text) .. ", " .. Q.A2 .. " as it was " .. tostring(a.kept))
         -- Cancel: the profile as it was, the text dropped
-        local why = (w.confirm == "preplace") and K.press(w, "confirm:no") or "no question open"
+        local why = "no question open"; if w.confirm == "preplace" then why = K.press(w, "confirm:no") end
         local p = K.model().presets[Q.A2]
         keep.m53cancel = { why = why, confirm = w.confirm, held = w._pasteText, kept = p ~= nil and p[keep.m53pid] == nil }
         -- asked again, for Replace this time

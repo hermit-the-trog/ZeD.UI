@@ -1796,7 +1796,7 @@ function X.workshop()
             "view " .. tostring(mb.view) .. ", question " .. tostring(mb.c) .. ", move held " .. tostring(mb.go))
         note("DK13: the Workshop's menu bar question puts the pad on " .. tostring(mb.f) .. " (Keep editing)")
         -- Keep editing: stays, the edits kept, the move forgotten
-        local why = (w.confirm == "leave") and K.press(w, "confirm:cancel") or "no question open"
+        local why = "no question open"; if w.confirm == "leave" then why = K.press(w, "confirm:cancel") end
         check(why == nil and MM.view == "workshop" and not w.confirm and w._leaveGo == nil and K.count(w.unsaved) > 0,
             "DK59: Keep editing stays in the Workshop with its edits and forgets the move",
             tostring(why) .. "; view " .. tostring(MM.view) .. ", question " .. tostring(w.confirm) .. ", " .. K.count(w.unsaved) .. " folders unsaved")
@@ -1817,7 +1817,7 @@ function X.workshop()
             "view " .. tostring(pw.view) .. ", Workshop question " .. tostring(pw.c) .. ", quit question " .. tostring(pw.q))
         if pw.q then K.main():setConfirm(false) end
         -- Discard changes goes on with the held move: the main window's quit question (answered Cancel, never Exit)
-        local why = (w.confirm == "leave") and K.press(w, "confirm:no") or "no question open"
+        local why = "no question open"; if w.confirm == "leave" then why = K.press(w, "confirm:no") end
         r.dis = { why = why, view = MM.view, q = K.main().confirm == true, unsaved = K.count(w.unsaved) }
         if K.main().confirm then K.main():setConfirm(false) end
         if w.confirm then w:setConfirm(false) end
@@ -1894,7 +1894,7 @@ function X.workshop()
         -- (the Workshop holds no unsaved edits, so it asks nothing)
         local ws = K.win("workshop")
         if ws then ws.unsaved = {}; ws.busy = nil end
-        local why = (w.confirm == "leave") and K.press(w, "confirm:yes") or "no question open"
+        local why = "no question open"; if w.confirm == "leave" then why = K.press(w, "confirm:yes") end
         r.keep = { why = why, done = keep.de.n, view = MM.view }
         if w.confirm then w.confirm, w.focusId = false, nil end
         if MM.view ~= "main" then MM.leaveRun(function() MM.showView("main") end) end
