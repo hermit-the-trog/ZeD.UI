@@ -371,6 +371,7 @@ assert(loadstring(vsrc, "@ModSelectorModel.lua"))()
 local band = {}
 local leaveRan = {}
 ZeD = {
+    btnCase = function(s) return s end,
     MainMenu = { U = {}, ctx = {}, clickSound = noop, hoverSound = noop, now = function() return 0 end,
                  leaveRun = function(go) leaveRan[#leaveRan + 1] = go; if go then go() end end,
                  ui = { stripSpecs = function(_, _, _, _, lefts, rights, ask, plain) band = { lefts = lefts, rights = rights, ask = ask, plain = plain } end } },
