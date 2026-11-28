@@ -245,6 +245,15 @@ function ZeD_MMLoad:readPlayers(s)
             if p.sqlID == 1 then who = p end
         end
     end
+    -- (LJ9, Nov 27 2026: with player 1 dead, the name marked dead is player 1's, never a living one's: the
+    -- row and the preview read "<name>, dead" off s.who)
+    if s.dead then
+        who, first = nil, nil
+        for _, p in ipairs(info.players or {}) do
+            if p.sqlID == 1 then who = p end
+            if p.isDead then first = first or p end
+        end
+    end
     who = who or first or (info.players and info.players[1])
     s.who = who and who.name or nil
 end
@@ -423,6 +432,7 @@ end
 function ZeD_MMLoad:newPlayer()
     local s = self:selected()
     if not s or s.mode == "A Really CD DA" then return end
+    if self:whyNot(s) then return end   -- (LJ12, Nov 27 2026: a save that cannot be played is never set to a new character)
     setSavefilePlayer1(s.mode, s.saveName, -1)
     self:play()
 end
@@ -451,7 +461,8 @@ function ZeD_MMLoad:moreItems()
     local s = self:selected()
     local t = {
         { text = ZeD.tr("UI_ZeD_Saves_RenameFile"), fn = function() self:startRename() end },
-        { text = ZeD.btnCase(getText("UI_LoadGameScreen_ButtonNewPlayer")), fn = function() self:newPlayer() end, disabled = (s == nil) or s.mode == "A Really CD DA" },
+        { text = ZeD.btnCase(getText("UI_LoadGameScreen_ButtonNewPlayer")), fn = function() self:newPlayer() end,
+          disabled = (s == nil) or s.mode == "A Really CD DA" or self:whyNot(s) ~= nil },   -- (LJ12, Nov 27 2026)
         { text = ZeD.tr("UI_LoadGameScreen_ButtonChooseMods"), fn = function() self:chooseMods() end },
     }
     local okD, desk = pcall(isDesktopOpenSupported)
@@ -510,7 +521,9 @@ function ZeD_MMLoad:setConfirm(mode)
         if self.renameEntry:isFocused() then self.renameEntry:unfocus() end
     end
     if mode == "delete" then self.focusId = "confirm:no"   -- (a question that loses work lands on Cancel)
-    elseif mode == "rename" then self.focusId = "confirm:no"
+    elseif mode == "rename" then
+        -- (LJ24, Nov 27 2026: with a controller the hand lands on the field, where A opens the pad keyboard)
+        self.focusId = MM.gamepad() and "field:rename" or "confirm:no"
     else self.focusId = self.sel and ("save:" .. self.sel) or "back" end
 end
 
@@ -557,7 +570,13 @@ function ZeD_MMLoad:prerender()
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
-        styleEntry(self.renameEntry, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
+        local fy, fw = stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx)
+        styleEntry(self.renameEntry, fx, fy, fw, fh)
+        -- (LJ25, Nov 27 2026: a click on the field takes the caret again; LJ24: the controller's stop on it, left of
+        -- the buttons, A opens the pad keyboard, as Join's band field)
+        local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+        self._hits[#self._hits + 1] = { id = "load:rename", x = ax + fx, y = ay + fy, w = fw, h = fh, fn = function() self.renameEntry:focus() end }
+        fieldStop(self, self.renameEntry, "field:rename", fx, fy, fw, fh, row, 0)
     else
         stripSpecs(self, stripY, w, row,
             { { "back", getText("UI_btn_back"), function() self:back() end } },
@@ -617,17 +636,22 @@ function ZeD_MMLoad:drawList(x, y, w, h)
         local rh = r.head and T.px(HEAD_H) or T.px(ROW_H)
         local visible = ry + rh > vy and ry < vy + vh
         if r.head then
+            local fold = function()
+                if self.confirm then return end   -- (a fold could move the pick under an open question) (QA B6-1)
+                self.collapsed[r.mode] = not self.collapsed[r.mode]; self:filter()
+            end
+            -- (LJ30, Nov 27 2026: every head is a controller row too, A folds it; it picks no save)
+            idx = idx + 1
+            local hfid = "head:" .. r.mode
+            self._specs[#self._specs + 1] = { id = hfid, listRow = true, row = idx, col = 1, fn = fold, ry = ry + self.scroll - vy, rh = rh }
             if visible then
                 local hid = "load:head:" .. r.mode
+                local focusO = (gp and self.focusId == hfid) and { focus = MM.focusOpts(self) } or nil
                 -- (a head half-scrolled out would claim a place outside the pane: it waits until it is wholly in)
                 if ry >= vy and ry + rh <= vy + vh then ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), MM.modeName(r.mode), r.count,
-                    not self.collapsed[r.mode], MM.ctx.hot == hid, T.fontF1, true, T.px(8), rh) end
+                    not self.collapsed[r.mode], MM.ctx.hot == hid, T.fontF1, true, T.px(8), rh, nil, focusO) end
                 local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
-                self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + cy, w = rw, h = ch,
-                    fn = function()
-                        if self.confirm then return end   -- (a fold could move the pick under an open question) (QA B6-1)
-                        self.collapsed[r.mode] = not self.collapsed[r.mode]; self:filter()
-                    end }
+                self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + cy, w = rw, h = ch, fn = fold }
             end
         else
             idx = idx + 1
@@ -685,12 +709,14 @@ end
 function ZeD_MMLoad:clickSave(s)
     if self.confirm then return end   -- (the rows wait while Rename or Delete is open) (beast W51, QA B6-1)
     local t = MM.now()
-    if self.sel == s.key and self._lastClick and t - self._lastClick < 450 then
+    -- (LJ18, Nov 27 2026: a double click is two clicks on the same save with no move of the pick between; joyDir,
+    -- which the arrow keys and the pad go through, clears _lastClick when it moves the pick)
+    if self.sel == s.key and self._lastClickKey == s.key and self._lastClick and t - self._lastClick < 450 then
         self._lastClick = nil
         self:play()
         return
     end
-    self._lastClick = t
+    self._lastClick, self._lastClickKey = t, s.key
     if self.sel ~= s.key then MM.hoverSound() end
     self.sel = s.key
     self.focusId = "save:" .. s.key
@@ -779,7 +805,7 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
     end)
     local modsText = (#names > 0) and table.concat(names, ", ") or ((#missing > 0) and ZeD.tr("UI_ZeD_Saves_ModsMissing", #missing) or ZeD.tr("IGUI_None"))
     kv(ZeD.textCase(ZeD.trBare("UI_LoadGameScreen_Mods")), modsText)
-    kv(ZeD.textCase(ZeD.tr("Version")), tostring(s.info.worldVersion or "?"))
+    kv(ZeD.textCase(ZeD.trBare("UI_servers_version")), tostring(s.info.worldVersion or "?"))   -- (LJ16, Nov 27 2026: the game's key, as Join's)
     -- PLAYING AS: a list box when the save has more than one character to play
     local opts = self:playerOptions(s)
     if #opts > 1 then
@@ -789,9 +815,14 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         local cx0, cyy, ch = vx, cy + math.floor((T.px(26) - T.px(24)) / 2), T.px(24)
         local hid = "load:players"
         local cur = s.info.playerAlive and (s.who or "") or getText("UI_LoadGameScreen_NoPlayer1")
-        MM.drawDropBox(self, cx0, cyy, cw, ch, cur, MM.ctx.hot == hid)
+        local gp = MM.gamepad()
+        MM.drawDropBox(self, cx0, cyy, cw, ch, cur, MM.ctx.hot == hid, false, gp and self.focusId == "players", self)
         local anchor = { x = ax + cx0, y = ay + cyy, w = cw, h = ch }
         self._hits[#self._hits + 1] = { id = hid, x = anchor.x, y = anchor.y, w = cw, h = ch, fn = function() self:openPlayers(anchor) end, sound = true }
+        -- (LJ10, Nov 27 2026: the controller's stop on the box, A opens the list, as vanilla's combo is a pad button;
+        -- not while Rename or Delete asks)
+        self._specs[#self._specs + 1] = { id = "players", noDraw = true, row = 998, col = 1, x = cx0, y = cyy, w = cw, h = ch,
+            disabled = self.confirm and true or false, fn = function() if not self.confirm then MM.clickSound(); self:openPlayers(anchor) end end }
         cy = cy + T.px(26)
     end
     -- what stops it loading, and mods it cannot find: a red status dot and the words
@@ -822,7 +853,11 @@ function ZeD_MMLoad:joyDir(dir)
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
         if b.id == self.focusId and b.listRow then
-            self.sel = b.key
+            -- (LJ30: a head picks no save; LJ18, Nov 27 2026: a move of the pick ends any double click begun before it)
+            if b.key then
+                if self.sel ~= b.key then self._lastClick = nil end
+                self.sel = b.key
+            end
             local vh = self._list and self._list.h or 0
             if b.ry < self.scroll then self.scroll = b.ry
             elseif b.ry + b.rh > self.scroll + vh then self.scroll = b.ry + b.rh - vh end
@@ -875,7 +910,13 @@ function ZeD_MMLoad:keyOther(key)
     if key == Keyboard.KEY_DELETE then self:askDelete(); return true end
     if key == Keyboard.KEY_UP or key == Keyboard.KEY_DOWN then
         self.focusId = self.sel and ("save:" .. self.sel) or nil
-        self:joyDir(key == Keyboard.KEY_UP and "up" or "down")
+        local before = self.focusId
+        -- (LJ30, Nov 27 2026: the arrow keys walk the saves only; the heads, controller rows now, are stepped over)
+        for _ = 1, #self.view do
+            self:joyDir(key == Keyboard.KEY_UP and "up" or "down")
+            if (self.focusId or ""):sub(1, 5) ~= "head:" then break end
+        end
+        if (self.focusId or ""):sub(1, 5) == "head:" then self.focusId = before end
         return true
     end
     return false

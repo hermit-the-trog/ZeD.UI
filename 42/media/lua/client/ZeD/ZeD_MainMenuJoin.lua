@@ -135,14 +135,25 @@ function ZeD_MMJoin:savedRows()
     local m = mp()
     local rows = {}
     if not m or not m.accountList then return rows end
+    -- (LJ44, Nov 27 2026: two saved servers on one address: the second and later get "#n" on their key, and so do
+    -- the account rows under them, so each can be picked, edited and removed. The first keeps the plain key)
+    local seen, curServer, curKey = {}, nil, nil
+    local function sk(server)
+        if server == curServer and curKey then return curKey end
+        return keyOf(server)
+    end
     for _, it in ipairs(m.accountList.items) do
         local d = it.item
         if d.type == "server" then
-            rows[#rows + 1] = { kind = "server", key = "s:" .. keyOf(d.server), server = d.server, h = ROW_H }
+            local k = keyOf(d.server)
+            seen[k] = (seen[k] or 0) + 1
+            if seen[k] > 1 then k = k .. "#" .. seen[k] end
+            curServer, curKey = d.server, k
+            rows[#rows + 1] = { kind = "server", key = "s:" .. k, server = d.server, h = ROW_H }
         elseif d.type == "account" then
-            rows[#rows + 1] = { kind = "account", key = "a:" .. keyOf(d.server) .. ":" .. s(d.account:getUserName()), server = d.server, account = d.account, h = SUB_H }
+            rows[#rows + 1] = { kind = "account", key = "a:" .. sk(d.server) .. ":" .. s(d.account:getUserName()), server = d.server, account = d.account, h = SUB_H }
         elseif d.type == "new_account" then
-            rows[#rows + 1] = { kind = "newAccount", key = "n:" .. keyOf(d.server), server = d.server, h = SUB_H }
+            rows[#rows + 1] = { kind = "newAccount", key = "n:" .. sk(d.server), server = d.server, h = SUB_H }
         elseif d.type == "new_server" then
             rows[#rows + 1] = { kind = "newServer", key = "new", h = ROW_H }
         end
@@ -171,9 +182,12 @@ end
 function ZeD_MMJoin:pick(r)
     local m = mp()
     if not r or not m then return end
+    -- (LJ33, LJ34, Nov 27 2026: the rows wait while a question is open, as Load's do: a click on another row can
+    -- neither change what Remove removes nor connect another account under the password question)
+    if self.confirm then return end
     local t = MM.now()
-    local double = (self.sel == r.key and self._lastClick and t - self._lastClick < 450)
-    self._lastClick = t
+    local double = (self.sel == r.key and self._lastClickKey == r.key and self._lastClick and t - self._lastClick < 450)
+    self._lastClick, self._lastClickKey = t, r.key
     if self.sel ~= r.key then MM.hoverSound() end
     self.sel = r.key
     if r.kind == "newServer" then self:openServerForm(nil); return end
@@ -245,9 +259,18 @@ function ZeD_MMJoin:connectPublic(server)
         -- a saved server: its accounts are under it on SAVED
         local accs = fav.server:getAccounts()
         if accs:size() == 1 then self:connectAccount(fav.server, accs:get(0)); return end
+        -- (LJ40, Nov 27 2026: no account yet: the account form for it, connecting when saved, as for a server not
+        -- saved; several: SAVED with its first account chosen and the hand on it, so the list under the server is
+        -- the pick and Connect is one press away)
+        if accs:size() == 0 then self:openAccountForm(fav.server, nil, true); return end
         self.tab = "saved"
         self.scroll = 0
-        self.sel = "s:" .. keyOf(fav.server)
+        self.sel = "a:" .. keyOf(fav.server) .. ":" .. s(accs:get(0):getUserName())
+        self.focusId = nil
+        for i, rr in ipairs(self:savedRows()) do
+            if rr.key == self.sel then self.focusId = "row:" .. i end
+        end
+        if not self.focusId then self.sel = "s:" .. keyOf(fav.server) end
         MM.clickSound()
         return
     end
@@ -358,6 +381,9 @@ function ZeD_MMJoin:setConfirm(mode)
     if self.confirm == mode then return end
     self.confirm = mode
     MM.ctx.open = nil
+    -- (LJ33, Nov 27 2026: Remove, Delete and Forget act on the row the question opened on, kept here, never on a
+    -- row picked since; Load keeps _dTarget the same way)
+    self._cRow = SAFE_ANSWER[mode] and self:selectedRow() or nil
     if mode == "pwd" or mode == "srvpwd" then
         self.field:setText("")
         self.field:setVisible(true)
@@ -381,6 +407,13 @@ function ZeD_MMJoin:openServerForm(server)
     self.fAddr:setText(server and s(server:getIp()) or "")
     self.fPort:setText(server and s(server:getPort()) or "16261")
     self.fSrvPwd:setText(server and s(server:getServerPassword()) or "")
+    -- (LJ35, Nov 27 2026: streamer mode masks the address and the port, as vanilla's ISMPEditServer; the list's tick
+    -- is read too, as it shows the same option)
+    local mpui = mp()
+    local tick = mpui and mpui.showIPAddressesTickBox
+    local streamer = (getCore():getOptionStreamerMode() or (tick and tick:isSelected(1))) and true or false
+    self.fAddr:setMasked(streamer)
+    self.fPort:setMasked(streamer)
     self.fName:focus()
     self.focusId = nil
 end
@@ -442,7 +475,7 @@ function ZeD_MMJoin:saveServerForm()
     if any(self:serverProblems()) or not m then return end
     local sv = self.form.server
     local name, addr = (self.fName:getText() or ""):trim(), (self.fAddr:getText() or ""):trim()
-    local port = tonumber((self.fPort:getText() or ""):trim()) or 16262
+    local port = tonumber((self.fPort:getText() or ""):trim()) or 16261   -- (LJ43, Nov 27 2026: the form's own default, not 16262)
     local pwd = (self.fSrvPwd:getInternalText() or ""):trim()
     if sv then
         sv:setName(name); sv:setIp(addr); sv:setPort(port); sv:setServerPassword(pwd)
@@ -560,17 +593,32 @@ function ZeD_MMJoin:place(e, x, y, w, h)
 end
 
 -- a tick with its label; returns its width
-function ZeD_MMJoin:tick(id, x, y, label, on, fn)
+function ZeD_MMJoin:tick(id, x, y, label, on, fn, row)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local cb = T.checkboxSz
     local f2, tc = T.fontF2, T.text
     local hot = MM.ctx.hot == "join:" .. id
-    ZeD.Atoms.drawCheckbox(self, x, y, on, hot, false)
     local tw = MM.textW(f2, label)
+    -- (LJ36, Nov 27 2026: every tick is a controller stop too, A ticks it; row orders it in the old grid only. Its
+    -- mark goes under the box and the words)
+    if self:padStop("tick:" .. id, x - T.px(2), y - T.px(4), cb + tw + T.px(10), cb + T.px(8), fn, row) then tc = T.textOnFocus end
+    ZeD.Atoms.drawCheckbox(self, x, y, on, hot, false)
     self:drawText(label, x + cb + T.px(6), y + math.floor((cb - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     self._hits[#self._hits + 1] = { id = "join:" .. id, x = ax + x - T.px(2), y = ay + y - T.px(4), w = cb + tw + T.px(10), h = cb + T.px(8), fn = fn, sound = true }
     return cb + T.px(6) + tw
+end
+
+-- (LJ36, Nov 27 2026) a control drawn by hand as one of the controller's stops: a spec the band does not draw
+-- (noDraw), A runs fn with the click's sound, and the controller's mark while the hand is on it. Not while a
+-- question is open. row: its place in the old row grid (after the list's rows and before the band by default).
+function ZeD_MMJoin:padStop(id, x, y, w, h, fn, row)
+    self._specs[#self._specs + 1] = { id = id, noDraw = true, row = row or 999.5, col = #self._specs, x = x, y = y, w = w, h = h,
+        disabled = self.confirm and true or false, fn = function() if not self.confirm then MM.clickSound(); fn() end end }   -- (999.5: after Find)
+    if MM.gamepad() and self.focusId == id and ZeD.Focus and ZeD.Focus.mark then
+        return ZeD.Focus.mark(self, x, y, w, h, MM.focusOpts(self))
+    end
+    return false
 end
 
 function ZeD_MMJoin:drawList(x, y, w, h)
@@ -687,6 +735,7 @@ end
 
 -- A on a row: an account connects, the add rows open their forms
 function ZeD_MMJoin:connectOrOpen(r)
+    if self.confirm then return end   -- (LJ34, Nov 27 2026: never under a question)
     if r.kind == "account" or r.kind == "public" then self:connect() end
 end
 
@@ -703,15 +752,19 @@ function ZeD_MMJoin:drawColumnHeads(x, y, w)
     local cols = self:columnX(x, w)
     for _, c in ipairs({ { "name", ZeD.textCase(ZeD.tr("UI_servers_sortType_Name")), cols.name }, { "player", ZeD.textCase(ZeD.trBare("UI_servers_players")), cols.players }, { "ping", ZeD.textCase(ZeD.tr("UI_servers_sortType_Ping")), cols.ping } }) do
         local cx = c[3]
-        self:drawText(c[2], cx, y + math.floor((hH - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
         local tw = MM.textW(f1, c[2])
+        local sortFn = function() if m then m:onClickSort({ internal = c[1] }) end end
+        -- (LJ36, Nov 27 2026: each head is a controller stop too, A sorts as the click does; its mark under the words)
+        local onF = self:padStop("sort:" .. c[1], cx - T.px(4), y, tw + T.px(20), hH, sortFn)
+        local ink, triC = la, T.textDim
+        if onF then ink, triC = T.textOnFocus, T.textOnFocus end
+        self:drawText(c[2], cx, y + math.floor((hH - MM.fontH(f1)) / 2), ink.r, ink.g, ink.b, ink.a or 1, f1)
         if m and m.sortType == c[1] then
             local tri = T.px(7)
-            if m.sortDown then ZeD.Atoms.drawTriangleDown(self, cx + tw + T.px(6), y + math.floor((hH - T.px(4)) / 2), tri, T.textDim)
-            else ZeD.Atoms.drawTriangleUp(self, cx + tw + T.px(6), y + math.floor((hH - T.px(4)) / 2), tri, T.textDim) end
+            if m.sortDown then ZeD.Atoms.drawTriangleDown(self, cx + tw + T.px(6), y + math.floor((hH - T.px(4)) / 2), tri, triC)
+            else ZeD.Atoms.drawTriangleUp(self, cx + tw + T.px(6), y + math.floor((hH - T.px(4)) / 2), tri, triC) end
         end
-        self._hits[#self._hits + 1] = { id = "join:sort:" .. c[1], x = ax + cx - T.px(4), y = ay + y, w = tw + T.px(20), h = hH, sound = true,
-            fn = function() if m then m:onClickSort({ internal = c[1] }) end end }
+        self._hits[#self._hits + 1] = { id = "join:sort:" .. c[1], x = ax + cx - T.px(4), y = ay + y, w = tw + T.px(20), h = hH, sound = true, fn = sortFn }
     end
     return y + hH + T.px(1)
 end
@@ -897,10 +950,10 @@ function ZeD_MMJoin:drawForm(x, y, w, h)
             local d = T.textDim
             self:drawText(ZeD.tr("UI_ZeD_Join_KeepPassword"), ix, cy - T.px(NOTE_H) - T.px(4), d.r, d.g, d.b, d.a or 1, T.fontF3)
         end
-        self:tick("remember", ix, cy, getText("UI_servers_remember_password"), f.remember, function() f.remember = not f.remember end)
+        self:tick("remember", ix, cy, getText("UI_servers_remember_password"), f.remember, function() f.remember = not f.remember end, 103)
         cy = cy + T.checkboxSz + T.px(12)
         if getSteamModeActive() then
-            self:tick("relay", ix, cy, getText("UI_servers_useSteamRelay"), f.relay, function() f.relay = not f.relay end)
+            self:tick("relay", ix, cy, getText("UI_servers_useSteamRelay"), f.relay, function() f.relay = not f.relay end, 104)
             cy = cy + T.checkboxSz + T.px(12)
         end
         -- vanilla's warning about sharing a server's address
@@ -931,6 +984,8 @@ function ZeD_MMJoin:buildStrip(stripY, stripH, w)
         local fy, fw = stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx)
         UI.styleEntry(self.field, fx, fy, fw, fh)
         self._shown[self.field] = true
+        -- (LJ25, Nov 27 2026: a click on the field takes the caret again, as the forms' fields do)
+        self._hits[#self._hits + 1] = { id = "join:f:band", x = self:getAbsoluteX() + fx, y = self:getAbsoluteY() + fy, w = fw, h = fh, fn = function() self.field:focus() end }
         -- the controller's stop on it, left of the buttons: A opens the pad keyboard (punch list 252)
         if UI.fieldStop then UI.fieldStop(self, self.field, "field:band", fx, fy, fw, fh, row, 0) end
     end
@@ -947,13 +1002,13 @@ function ZeD_MMJoin:buildStrip(stripY, stripH, w)
             { "confirm:yes", ZeD.tr("UI_Ok"), function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } }, ask, true)
         fieldIn(ask)
     elseif self.confirm == "delServer" or self.confirm == "forget" then
-        local sv = r and r.server
+        local sv = self._cRow and self._cRow.server   -- (LJ33: the row the question opened on)
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
             { "confirm:yes", getText("UI_btn_remove"), function() self:forgetServer(sv) end, "danger" } },
             ZeD.tr("UI_ZeD_Join_AskRemoveServer", s(sv and sv:getName())))
     elseif self.confirm == "delAccount" then
-        local acc = r and r.account
+        local acc = self._cRow and self._cRow.account   -- (LJ33)
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
             { "confirm:yes", getText("UI_btn_delete"), function() self:deleteAccount(acc) end, "danger" } },
@@ -1001,9 +1056,12 @@ end
 -- CONTROLLER + KEYS + WHEEL --------------------------------------------------------------
 -- the D-pad's focus is the selection: the chosen row follows it and is scrolled into view
 function ZeD_MMJoin:joyDir(dir)
+    -- (LJ33, LJ34, Nov 27 2026: up and down would land on a row and pick it: not while a question is open, as Load)
+    if self.confirm and (dir == "up" or dir == "down") then return end
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
         if b.id == self.focusId and b.rowRef then
+            if self.sel ~= b.rowRef.key then self._lastClick = nil end   -- (LJ18's rule: a move ends a double click)
             self.sel = b.rowRef.key
             local vh = self._list and self._list.h or 0
             if b.ry < self.scroll then self.scroll = b.ry
@@ -1158,12 +1216,20 @@ function ZeD_MMConnect:prerender()
         self:drawText(ZeD.textCase(UI.plain(getText("UI_ConnectToServer_GoogleAuth_Request"))), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
         cy = cy + T.px(18)
         UI.styleEntry(self.code, ix, cy, T.px(160), T.px(24))
-        if not self.code:isVisible() then self.code:setVisible(true); self.code:focus() end
+        if not self.code:isVisible() then
+            self.code:setVisible(true); self.code:focus()
+            if MM.gamepad() then self.focusId = "field:code" end   -- (LJ49: the hand lands on the field)
+        end
         local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
         self._hits[#self._hits + 1] = { id = "connect:code", x = ax + ix, y = ay + cy, w = T.px(160), h = T.px(24), fn = function() self.code:focus() end }
+        -- (LJ49, Nov 27 2026: the controller's stop on the code field, A opens the pad keyboard, as every other
+        -- menu field; Send stays its own press)
+        if UI.fieldStop then UI.fieldStop(self, self.code, "field:code", ix, cy, T.px(160), T.px(24), 1) end
         cy = cy + T.px(34)
     elseif self.code:isVisible() then
+        if self.code:isFocused() then self.code:unfocus() end
         self.code:setVisible(false)
+        if self.focusId == "field:code" or self.focusId == "send" then self.focusId = "back" end   -- (LJ49)
     end
     -- vanilla's reminder
     local rem = UI.plain(s(c.richText and c.richText.text))
@@ -1193,7 +1259,10 @@ function ZeD_MMConnect:close() self:back() end
 function ZeD_MMConnect:getFooterPrompts()
     if not MM.gamepad() then return nil end
     local c = cts()
-    return { { glyph = "B", label = (c and c.connecting) and ZeD.btnCase(getText("UI_coopscreen_btn_abort")) or ZeD.btnCase(getText("UI_btn_back")) } }
+    local bp = { glyph = "B", label = (c and c.connecting) and ZeD.btnCase(getText("UI_coopscreen_btn_abort")) or ZeD.btnCase(getText("UI_btn_back")) }
+    -- (LJ49, Nov 27 2026: with the code asked, A types it or sends it)
+    if c and c.googleAuthPopup and c.googleAuthPopup:isVisible() then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, bp } end
+    return { bp }
 end
 
 -- ============================================================================
