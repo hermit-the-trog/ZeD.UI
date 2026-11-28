@@ -1653,7 +1653,7 @@ function X.realBack()
         check(r.f == "confirm:no", "MO40: the question lands the pad on Cancel", "the pad on " .. tostring(r.f))
         local yes, dis, no = K.spec(w, "confirm:yes"), K.spec(w, "confirm:discard"), K.spec(w, "confirm:no")
         check(tostring(w._bandAsk) == ZeD.tr("UI_ZeD_Order_AskKeep") and yes ~= nil and yes.text == getText("ContextMenu_Keep") and dis ~= nil
-            and no ~= nil and no.text == getText("UI_btn_cancel"), "MO40: the question's words and its answers (Keep, Discard changes, Cancel)",
+            and no ~= nil and no.text == ZeD.btnCase(getText("UI_btn_cancel")) and no.text ~= string.upper(no.text), "MO40: the question's words and its answers (Keep, Discard changes, Cancel, in sentence case)",
             "the band says \"" .. tostring(w._bandAsk) .. "\"; " .. tostring(yes and yes.text) .. ", " .. tostring(dis and dis.text) .. ", " .. tostring(no and no.text))
         -- Cancel, once: the page and the move stay
         local why = "no question open"
