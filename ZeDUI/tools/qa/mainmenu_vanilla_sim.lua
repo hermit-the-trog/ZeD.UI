@@ -604,7 +604,8 @@ MM.view = "main"
 bp:connect("10.0.0.5", "16261", "")
 check("A2 a Steam invite lands on the invite view", MM.view == "bootstrap" and bp:getX() <= -10000, MM.view)
 draw(W.bootstrap, "A2 invite asking")
-check("A2 the address and the game's words", texts():find("10.0.0.5 : 16261", 1, true) and texts():find(getText("UI_servers_Connecting"), 1, true))
+-- (LJ35, Nov 27 2026: no address on the invite, as vanilla's shows none; it was "the address and the game's words")
+check("A2 no address, and the game's words", not texts():find("10.0.0.5 : 16261", 1, true) and texts():find(getText("UI_servers_Connecting"), 1, true))
 check("A2 Cancel while it asks", band(W.bootstrap, "back") and band(W.bootstrap, "back").text == ZeD.btnCase(getText("UI_Cancel")))
 -- Steam fails to answer: Back
 bp:OnSteamServerFailedToRespond2("10.0.0.5", 16261)

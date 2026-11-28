@@ -2882,6 +2882,7 @@ function MM.showView(view, joypadData)
     MM.deskAt, MM.deskBack = nil, nil   -- (a view put up takes the controller: off the menu bar and the icons)
     local w = MM.activeWindow()
     if was and was ~= w then MM.unfocusEntries(was) end
+    if was and was ~= w and was.onViewLeft then was:onViewLeft() end   -- (LJ2, Nov 27 2026: Host puts vanilla's idle screen away)
     -- (the Mods screen left: the Files tab's open file is shut, or it stays open for the whole session)
     if was ~= w and ZeD.ModFiles and ZeD.ModFiles.pause then ZeD.ModFiles.pause() end
     if w and w.onShow then w:onShow() end
