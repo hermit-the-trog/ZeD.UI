@@ -116,12 +116,12 @@ local function cells(L)
     local lx, ly = L.tx + T.px(EDGE), top
     -- (clear of the controller's prompts along the screen's foot, which sit at the left: the same place with a mouse)
     local colW, bottom = 0, L.ty + L.th - T.px(EDGE) - T.sp.scrollbarW - T.px(GAP)
-    local full = false
+    local over = 0            -- (DK30: items past the last column's room, stacked a step apart)
     local free = {}           -- moved items: laid out last (below)
     for _, it in ipairs(MM.leftItems and MM.leftItems() or {}) do
         local iw, ih = cw, ch
         if it.size then iw, ih = it.size() end
-        if not full and not (it.hide and it.hide()) then
+        if not (it.hide and it.hide()) then
             -- an item that can be moved (the sticky note, punch list 114): the room it moves in, the whole desktop
             -- under the menu bar; placed by its own fractions of that room, else it keeps its spot in the column
             local room = it.place and { x0 = L.tx + T.px(EDGE), y0 = top,
@@ -137,7 +137,16 @@ local function cells(L)
                 if ly > top and ly + ih > bottom then lx = lx + colW + T.px(GAP); ly = top; colW = 0 end
                 local colAfter = math.max(colW, iw)
                 if lx + colAfter > rightX - T.px(GAP) then
-                    full = true                                 -- (the rest are in the notepad's Open list)
+                    -- (DK30, Nov 27 2026: no room for another column; this item was dropped from the desk, and every
+                    -- one after it, moved notes too. It goes on the desk still: just left of the right-hand icons,
+                    -- each a step down from the last, laid over the left side as a moved note is, and a note there
+                    -- can be moved off)
+                    local step = T.px(GAP) + T.px(8)
+                    local cx = math.max(L.tx + T.px(EDGE), rightX - T.px(GAP) - iw - over * step)
+                    local cy = math.max(top, math.min(top + over * step, bottom - ih))
+                    over = over + 1
+                    free[#free + 1] = { item = it, x = cx, y = cy, w = iw, h = ih, ix = cx + math.floor((iw - isz) / 2), iy = cy, isz = isz,
+                                        ly = cy + isz + T.px(6), lh = labelH, left = true, room = room }
                 else
                     colW = colAfter
                     local cx = it.size and lx or (lx + math.floor((math.max(colW, cw) - iw) / 2))
@@ -672,7 +681,8 @@ end
 function ZeD_MMTrash:joyB() if self.confirm then self:setConfirm(false) else self:close() end end
 function ZeD_MMTrash:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = getText("IGUI_Exit") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    -- (DK14, Nov 27 2026: A names the answer the controller is on: Cancel once it has moved there)
+    if self.confirm then return { { glyph = "A", label = getText(self.focusId == "confirm:no" and "UI_Cancel" or "IGUI_Exit") }, { glyph = "B", label = getText("UI_Cancel") } } end
     return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Close") } }
 end
 function ZeD_MMTrash:keyEscape() self:joyB(); return true end
