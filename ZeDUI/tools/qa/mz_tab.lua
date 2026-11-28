@@ -61,7 +61,7 @@
 --   MP49 the World window shut while unfolded; MP50 the unfolded window at 600 by 400 and full screen; MP51 SKIP
 --   MP52 Read Map (B1: the game's read action whole, the window at its end), the window, the reveal asked, the paper's band and key. Picture
 --        mz_paper_<WxH>
---   MP53 a map in a bag and on the floor; MP54 marks on a paper (B2 SKIP: multiplayer); MP55 the paper dropped or bagged
+--   MP53 a map in a bag and on the floor, Put things back off and on (on: held while the paper is up, back after the fold);MP54 marks on a paper (B2 SKIP: multiplayer); MP55 the paper dropped or bagged
 --   MP56 paper over paper, M with a paper up, Read Map over the world map; MP57 every town and Louisville map drawn;
 --   MP58 SKIP (a stash map places its stash for good)
 --   MP60 the drawer's stop order, the D-pad walk, the cursor's B; MP61 the unfolded window's stops
@@ -3641,12 +3641,27 @@ function C.mp52()
 end
 
 -- ===================================================================== MP53 Read Map on a map in a bag, and on the floor
-function C.mp53leg(T, where)
-    local L = T.L .. " (" .. where .. ")"
+-- Put things back set for a leg (ZeD.Settings.putBackOption: 1 off, 2 on); the value found comes back after the leg
+function H.putBackSet(on)
+    local o = ZeD.Settings and ZeD.Settings.putBackOption
+    if not o then return false end
+    if S.pbWas == nil then S.pbWas = H.optVal(o) or 1 end
+    pcall(function() o:setValue(on and 2 or 1) end)
+    return true
+end
+function H.putBackRestore()
+    local o = ZeD.Settings and ZeD.Settings.putBackOption
+    if o and S.pbWas ~= nil then pcall(function() o:setValue(S.pbWas) end) end
+    S.pbWas = nil
+end
+function C.mp53leg(T, where, pbOn)
+    local L = T.L .. " (" .. where .. (pbOn and ", Put things back on)" or ", Put things back off)")
     H.step(2, function()
-        T.leg, T.staged = nil, nil
+        T.leg, T.staged, T.binv = nil, nil, nil
         if T.off then return end
         H.legClean()
+        if not (ZeD.PutBack and H.putBackSet(pbOn)) then Q.skip(L, "ZeD_PutBack or its option is not loaded"); return end
+        if pbOn and ZeD.PutBack.on and not ZeD.PutBack.on() then H.putBackRestore(); Q.skip(L, "Put things back reads off (safe mode on?)"); return end
         H.qstop()
         local ft = nil
         for _, f in ipairs(S.TOWN_MAPS) do if not ft and H.known(f) then ft = f end end
@@ -3656,6 +3671,7 @@ function C.mp53leg(T, where)
             local inv = nil
             pcall(function() inv = bag:getInventory() end)
             if not inv then Q.skip(L, "no bag to put it in"); return end
+            T.binv = inv
             T.it = H.giveTo(inv, ft)
         else
             T.it = H.give(ft)
@@ -3702,6 +3718,33 @@ function C.mp53leg(T, where)
         Q.check(ok and T.must and (string.find(T.q, "Transfer", 1, true) ~= nil), L .. ": the game's transfer first (luautils.haveToBeTransfered), then ZeD's paper window",
             "from " .. tostring(T.from) .. "; the game says transfer " .. tostring(T.must) .. "; the queue " .. H.list(T.hist, 12) .. "; Read Map called " .. S.rw.ocm .. " times, the read action's end (showUI) "
             .. S.rw.ui .. " times; the map now in " .. cont .. " (on the floor " .. tostring(wo ~= nil) .. "), " .. mine .. " of its kind in his things; the paper up " .. tostring(ok) .. " (" .. H.ft(H.paperItem()) .. ")")
+        T.up = ok
+        T.held = ZeD.PutBack and ZeD.PutBack.held and ZeD.PutBack.held[T.it] ~= nil
+        T.onHim = H.where(T.it) == H.inv()
+    end)
+    -- the paper put away (ZeD's fold): with Put things back on the held move back runs now, off nothing moves
+    H.step(10, function()
+        if T.off or not T.leg then return end
+        if T.up then pcall(S.MT.closePopout, RT.ww(), true) end
+        H.speed(2)
+    end)
+    H.wait(8000, function() return T.off or not T.leg or H.qlen() == 0 end, function() H.speed(1) end)
+    H.step(20, function()
+        if T.off or not T.leg then H.putBackRestore(); return end
+        local wo, inBag, onHim = nil, false, H.where(T.it) == H.inv()
+        pcall(function() wo = T.it:getWorldItem() end)
+        if T.binv then inBag = H.where(T.it) == T.binv end
+        local back = (where == "a backpack") and inBag or (wo ~= nil)
+        local held = ZeD.PutBack and ZeD.PutBack.held and ZeD.PutBack.held[T.it] ~= nil
+        local was = "held while the paper was up " .. tostring(T.held) .. ", on him then " .. tostring(T.onHim) .. ""
+        local now = "now on him " .. tostring(onHim) .. ", in its bag " .. tostring(inBag) .. ", on the floor " .. tostring(wo ~= nil) .. ", still held " .. tostring(held) .. "; queue " .. H.qkinds()
+        if pbOn then
+            Q.check(T.up and T.held and T.onHim, L .. ": while the paper is up the map stays on him and its move back is held (ZeD.PutBack.held)", was .. "; " .. now)
+            Q.check(T.up and back and not held, L .. ": the paper put away, the map goes back to " .. (where == "a backpack" and "its bag" or "the floor") .. " (the director's call 8, Nov 27)", now)
+        else
+            Q.check(T.up and not T.held and onHim, L .. ": Put things back off: nothing held, the map stays on him after the fold (the game's way)", "held " .. tostring(T.held) .. "; " .. now)
+        end
+        H.putBackRestore()
     end)
 end
 -- Read Map's calls (ISInventoryPaneContextMenu.onCheckMap, the transfer's end calls it again) and the read action's
@@ -3725,8 +3768,10 @@ end
 function C.mp53()
     local T = { L = "MP53 Read Map from a bag and the floor" }
     H.step(2, function() H.caseStart(T); RT.pairOpen() end)
-    C.mp53leg(T, "a backpack")
-    C.mp53leg(T, "the floor")
+    C.mp53leg(T, "a backpack", false)
+    C.mp53leg(T, "the floor", false)
+    C.mp53leg(T, "a backpack", true)
+    C.mp53leg(T, "the floor", true)
     H.caseEnd(T.L)
 end
 
@@ -4625,6 +4670,7 @@ function H.putBack()
     S.back.on = nil
     local f = S.found
     if S.uwm then UIWorldMap = S.uwm; S.uwm = nil end
+    if H.putBackRestore then H.putBackRestore() end
     if S.defs0 then PrintMediaDefinitions.MiscDetails = S.defs0; S.defs0 = nil end
     H.stageDark(false)
     H.noteKbOff()

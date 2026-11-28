@@ -57,7 +57,8 @@
 --   J26 the quick note's refusals: no pencil, dark, locked by you, locked by another (J49's single-player half)
 --   J27 Open full: written with and without a pencil, blank with none, dark
 --   J28 the Notebooks search: a word on page 4 of one book; a word in none
---   J29 a notebook in a bag: Write takes it out and leaves it in his main inventory
+--   J29 a notebook in a bag: Write takes it out; with Put things back off it stays in his main inventory (the game's
+--       way), with it on it goes back to its bag after the line is written (the director's call 8, Nov 27 2026)
 --   J30 the Papers list: one row for two copies, read first then by title, the count line, each row's state
 --   J31 Show (News, Flyers, On map, All), a title word, a press outside the open list
 --   J32 Read on an unread piece: the pad's B stops the read (J43); Read through: ISReadABook, the reader, the row
@@ -1050,6 +1051,7 @@ function H.putBack()
     local f = S.found
     H.speed(1)
     H.qstop()
+    if H.putBackRestore then H.putBackRestore() end
     H.park(false)
     H.padOff()
     H.kbHide()
@@ -3103,49 +3105,84 @@ function C.j28()
     H.caseEnd(T.L)
 end
 
-function C.j29()
-    local T = { L = "J29 a notebook in a bag" }
+-- Put things back set for a leg (ZeD.Settings.putBackOption: 1 off, 2 on); the value found comes back after the leg
+function H.putBackSet(on)
+    local o = ZeD.Settings and ZeD.Settings.putBackOption
+    if not o then return false end
+    if S.pbWas == nil then S.pbWas = H.optVal(o) or 1 end
+    pcall(function() o:setValue(on and 2 or 1) end)
+    return true
+end
+function H.putBackRestore()
+    local o = ZeD.Settings and ZeD.Settings.putBackOption
+    if o and S.pbWas ~= nil then pcall(function() o:setValue(S.pbWas) end) end
+    S.pbWas = nil
+end
+function C.j29leg(T, pbOn)
+    local L = T.L .. (pbOn and " (Put things back on)" or " (Put things back off)")
     H.step(2, function()
-        if not H.caseStart(T) then return end
+        T.leg = nil
+        if T.off then return end
+        if not (ZeD.PutBack and H.putBackSet(pbOn)) then Q.skip(L, "ZeD_PutBack or its option is not loaded"); return end
+        if pbOn and ZeD.PutBack.on and not ZeD.PutBack.on() then H.putBackRestore(); Q.skip(L, "Put things back reads off (safe mode on?)"); return end
         T.bag = H.give(H.firstKnown({ "Base.Bag_Schoolbag", "Base.Bag_Satchel", "Base.Bag_DuffelBag" }))
         local inv = nil
         pcall(function() inv = T.bag:getInventory() end)
-        if not inv then T.off = true; Q.skip(T.L, "no bag type found here"); return end
+        if not inv then H.putBackRestore(); Q.skip(L, "no bag type found here"); return end
+        T.binv = inv
         T.nb = H.giveTo(inv, "Base.Notebook")
-        pcall(function() T.nb:setName("ZQA in a bag"); T.nb:setCustomName(true) end)
-        T.pen = H.give("Base.Pencil")
+        T.line = pbOn and "ZQA from the bag zq29b" or "ZQA from the bag zq29"
+        pcall(function() T.nb:setName(pbOn and "ZQA in a bag on" or "ZQA in a bag"); T.nb:setCustomName(true) end)
+        if not T.pen then T.pen = H.give("Base.Pencil") end
+        T.leg = true
         H.rescan()
     end)
     H.frontQ(T, 2)
-    H.step(2, function() if not T.off then H.jrPress("book:" .. tostring(H.id(T.nb)), T.L) end end)
+    H.step(2, function() if T.leg then H.jrPress("book:" .. tostring(H.id(T.nb)), L) end end)
     H.step(4, function()
-        if T.off then return end
-        pcall(function() RT.cw()._jrNote:setText("ZQA from the bag zq29") end)
-        H.jrPress("write", T.L)
+        if not T.leg then return end
+        pcall(function() RT.cw()._jrNote:setText(T.line) end)
+        H.jrPress("write", L)
         T.q = H.qkinds()
     end)
     H.writeWait(T)
-    H.wait(5000, function() return T.off or H.qlen() == 0 end, function() end)
+    H.wait(8000, function() return not T.leg or H.qlen() == 0 end, function() end)
     H.step(30, function()
-        if T.off then return end
+        if not T.leg then return end
         T.zIn = H.where(T.nb) == H.inv()
+        T.zBag = H.where(T.nb) == T.binv
         T.zWhere = H.ctypeOf(T.nb)
+        T.written = H.endsWith(H.page(T.nb, 1), T.line)
+        if pbOn then return end
         -- the game's own way out of the bag (transferIfNeeded, which its Write note and ZeD both call) on a second book
-        local inv = nil
-        pcall(function() inv = T.bag:getInventory() end)
-        T.nb2 = inv and H.giveTo(inv, "Base.Notebook")
+        T.nb2 = H.giveTo(T.binv, "Base.Notebook")
         pcall(function() ISInventoryPaneContextMenu.transferIfNeeded(S.p, T.nb2) end)
         T.q2 = H.qkinds()
         H.speed(2)
     end)
-    H.wait(8000, function() return T.off or H.qlen() == 0 end, function() H.speed(1) end)
+    H.wait(8000, function() return not T.leg or pbOn or H.qlen() == 0 end, function() H.speed(1) end)
     H.step(30, function()
-        if T.off then return end
-        local gIn = H.where(T.nb2) == H.inv()
-        H.note(T.L .. ": queued at Write: " .. tostring(T.q) .. "; the game's transferIfNeeded queued " .. tostring(T.q2) .. " and left its book in " .. H.ctypeOf(T.nb2))
-        Q.check(T.zIn and gIn and H.endsWith(H.page(T.nb, 1), "ZQA from the bag zq29"), T.L .. ": Write takes the book out of the bag and leaves it in his main inventory (the game's own transfer does)",
-            "ZeD's book in " .. tostring(T.zWhere) .. ", the game's in " .. H.ctypeOf(T.nb2) .. ", page \"" .. H.page(T.nb, 1) .. "\"")
+        if not T.leg then return end
+        H.putBackRestore()
+        if pbOn then
+            H.note(L .. ": queued at Write: " .. tostring(T.q) .. "; the book ended in " .. tostring(T.zWhere))
+            Q.check(T.zBag and T.written, L .. ": Write takes the book out of the bag, writes the line, then the book goes back into its bag",
+                "the book in " .. tostring(T.zWhere) .. " (in its bag " .. tostring(T.zBag) .. "), page \"" .. H.page(T.nb, 1) .. "\"")
+        else
+            local gIn = H.where(T.nb2) == H.inv()
+            H.note(L .. ": queued at Write: " .. tostring(T.q) .. "; the game's transferIfNeeded queued " .. tostring(T.q2) .. " and left its book in " .. H.ctypeOf(T.nb2))
+            Q.check(T.zIn and gIn and T.written, L .. ": Write takes the book out of the bag and leaves it in his main inventory (the game's own transfer does)",
+                "ZeD's book in " .. tostring(T.zWhere) .. ", the game's in " .. H.ctypeOf(T.nb2) .. ", page \"" .. H.page(T.nb, 1) .. "\"")
+        end
+        T.leg = nil
     end)
+end
+function C.j29()
+    local T = { L = "J29 a notebook in a bag" }
+    H.step(2, function() H.caseStart(T) end)
+    C.j29leg(T, false)
+    C.j29leg(T, true)
+    H.step(2, function() H.putBackRestore() end)
     H.caseEnd(T.L)
 end
 
