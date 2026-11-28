@@ -19,6 +19,15 @@ Scripts (each manifest at 4K and 1280x800): sk_tab (sk.txt), jn_tab (jn.txt), rd
 | Radio | 322 pass, 2 fail | 322 pass, 2 fail | R6, R51 (call 4) |
 | Maps | 343 pass, 1 fail | 340 pass, 1 fail | MP33 (call 7) |
 
+After Hermit's calls (fix/infocalls, main 0fef151b8; runs sk5, jn5, rd7, mz5):
+
+| Sweep | 4K | 1280x800 | What still fails |
+| --- | --- | --- | --- |
+| Skills and Info | 346 pass | 346 pass | nothing |
+| Journal | 328 pass | 328 pass | nothing |
+| Radio | 1 fail (R21) | 324 pass | R21: the disc stops only at the game's 2.5 s update (to Build; the check now asks for 1 s) |
+| Maps | 333 pass, 2 fail | 332 pass, 4 fail | MP53 with Put things back on: the read map is not held (to Build) |
+
 The skips are multiplayer cases, split screen, other languages and staging the game can't do in single player.
 
 ## Bugs found and fixed
