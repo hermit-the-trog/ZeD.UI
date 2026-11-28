@@ -6687,5 +6687,7 @@
     "UI_ZeD_Folders_AskDeleteMissingMany": "Den glemmer også %1 mods, der ikke er installeret.",
     "UI_ZeD_Folders_SayMovedCountOne": "1 mod flyttet til %1. Indlæsningsrækkefølgen ændres ikke.",
     "UI_ZeD_Folders_SayOutCountOne": "1 mod flyttet til Uden mappe.",
-    "UI_ZeD_Welcome_LoadEmpty": "Intet indlæst: %1 har ingen indstilling, ZeD kan læse. Intet er ændret."
+    "UI_ZeD_Welcome_LoadEmpty": "Intet indlæst: %1 har ingen indstilling, ZeD kan læse. Intet er ændret.",
+    "UI_ZeD_Mods_NoModsZeD": "Ingen mods slår også ZeD-GUI fra: med denne liste kommer spillets egne skærme tilbage.",
+    "UI_ZeD_Order_AskKeep": "Behold den nye rækkefølge?"
 }

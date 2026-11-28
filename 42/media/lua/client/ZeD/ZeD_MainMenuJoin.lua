@@ -465,7 +465,8 @@ function ZeD_MMJoin:accountProblems()
             end
         end
     end
-    if f and not f.account and (self.fPwd:getInternalText() or "") == "" then p.pwd = ZeD.tr("UI_ZeD_Join_ErrNoPassword") end
+    -- (QA LJ37, director's pick Nov 27 2026: a new account may have an empty password, as the game's ISMPEditAccount
+    -- allows; the refusal UI_ZeD_Join_ErrNoPassword is gone)
     return p
 end
 

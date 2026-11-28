@@ -678,7 +678,8 @@ function ZeD_MMOptions:changedCount()
             end
         end
     end
-    return n
+    -- (QA OP24, Nov 27 2026: a chord pick or X is a change like any row's; each chord not as it was counts once)
+    return n + ((ZeD.QuickChords and ZeD.QuickChords.pendingCount) and ZeD.QuickChords.pendingCount() or 0)
 end
 
 -- every time Options opens: vanilla's toUI (Core -> controls, live values stored), a fresh snapshot
@@ -695,6 +696,16 @@ function ZeD_MMOptions:onShow()
     self.scroll = 0
     self.focusId = nil
     self:snapshot()
+    -- (QA OP24, Nov 27 2026: the chords wait for Apply while the window is shown; Discard brings them back. The hold
+    -- lives until the window, once seen, is no longer shown: onShow runs a frame before the desk shows it.)
+    local Qc = ZeD.QuickChords
+    if Qc and Qc.hold then
+        self._chordSeen = false
+        Qc.hold(function()
+            if self:isVisible() then self._chordSeen = true; return true end
+            return not self._chordSeen
+        end)
+    end
 end
 function ZeD_MMOptions:onEnterFromGame() if self:isVisible() then self:onShow() end end
 
@@ -709,13 +720,17 @@ function ZeD_MMOptions:snapshot()
 end
 
 function ZeD_MMOptions:isChanged(r)
+    if r.kind == "chord" then return ZeD.QuickChords.isPending ~= nil and ZeD.QuickChords.isPending(r.chord) end   -- (OP24, Nov 27 2026)
     local k, s = rowKey(r), sig(r)
     return k and s and self.snap[k] ~= nil and self.snap[k] ~= s
 end
 
 function ZeD_MMOptions:anyChanged()
     local o = mo()
-    return o and o.gameOptions.changed and true or false
+    if o and o.gameOptions.changed then return true end
+    -- (QA OP24, Nov 27 2026: a chord changed and not applied counts too)
+    local Qc = ZeD.QuickChords
+    return (Qc and Qc.pendingCount and Qc.pendingCount() > 0) and true or false
 end
 
 -- CLOSING ---------------------------------------------------------------------
@@ -728,6 +743,8 @@ function ZeD_MMOptions:finish()
     self:setConfirm(false)   -- (every answer through setConfirm: _backFocus never left stale)
     self:stopCapture()
     JoypadState.controllerTest = nil
+    -- (QA OP24, Nov 27 2026: the chords' hold ends; Apply wrote them, Discard put them back)
+    if ZeD.QuickChords and ZeD.QuickChords.release then ZeD.QuickChords.release() end
     if self.inGame then MM.pauseView = "pause" else MM.showView("main") end
 end
 
@@ -757,6 +774,8 @@ end
 --- then the window closes (Settings.lua wraps this to re-apply ZeD's stored settings afterwards).
 function ZeD_MMOptions:discard()
     local o = mo()
+    -- (QA OP24, Nov 27 2026: the chords as they were at the window's opening or the last Apply)
+    if ZeD.QuickChords and ZeD.QuickChords.revert then ZeD.QuickChords.revert() end
     if o then
         pcall(function() o.gameOptions:restoreOriginalValues() end)
         o.gameOptions.changed = false
@@ -794,6 +813,8 @@ function ZeD_MMOptions:apply(closeAfter)
     MM.clickSound()
     self:setConfirm(false)
     self._closeAfter = closeAfter
+    -- (QA OP24, Nov 27 2026: Apply writes ZeD_chords.txt; until now the chord picks waited)
+    if ZeD.QuickChords and ZeD.QuickChords.commit then ZeD.QuickChords.commit() end
     o:apply(closeAfter)          -- vanilla: keys, options, mod options, save, then the dialogs (ours, below)
     self._groupCache, self._cache = nil, nil   -- (vanilla's apply can rewrite labels: read the pages afresh) (beast W39)
     if not closeAfter and self:isVisible() then self:snapshot() end
@@ -2115,7 +2136,7 @@ function ZeD_MMOptions:zedDefaults()
         local c = r.control
         if r.zedDefault and not r.zedNoReset and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end   -- (Style is left out: Lite stays Lite)
         if c and c.zedResetDefault then c.zedResetDefault() end   -- (the screens' check boxes: every one ZeD's)
-        if r.kind == "chord" then ZeD.QuickChords.reset(r.chord) end   -- (the chords keep no Apply: back to their start at once)
+        if r.kind == "chord" then ZeD.QuickChords.reset(r.chord) end   -- (OP24, Nov 27 2026: like the rows, it waits for Apply)
     end
     for _, o in ipairs(self:zedHiddenOpts()) do
         if hiddenOff(o) then setCombo(o.element, o.zedDefault) end
