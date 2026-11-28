@@ -43,6 +43,11 @@ PB.on = on
 local LEAD = { ISInventoryTransferAction = true, ISEquipWeaponAction = true, ISUnequipAction = true, ISWalkToTimedAction = true,
                ISPathFindAction = true, ISWaitWhileGettingUp = true, ISGetUpAction = true, ISOpenCloseDoor = true, ISGrabCorpseItem = true }
 local EQUIP = { ISEquipWeaponAction = true, ISUnequipAction = true }
+-- actions the game queues from the end of their own move in, on a later tick (a run of their own): the move is
+-- tied to them by the thing (PB.carried)
+local CARRY = { ISReadMapItem = true }
+PB.CARRY_MS = 30000    -- (the move's run is kept this long for the action that follows it)
+PB.carried = PB.carried or {}   -- item -> { chr, m (where it came from), ms }
 
 local tick = 0
 Events.OnTick.Add(function() tick = tick + 1 end)
@@ -77,7 +82,12 @@ function PB.noted(action)
     if not (chr and instanceof(chr, "IsoPlayer") and chr:isLocalPlayer()) then return end
     local run = runs[chr]
     if not run or run.tick ~= tick then
-        run = { chr = chr, tick = tick, moved = {}, order = {}, gameBack = {}, equips = false,
+        -- a run of moves only, with no action of its own (the game's Read Map: the move in, and the read queued
+        -- by the move's end, ticks later): its moves are kept a while for the action that follows from them
+        if run and not run.main and #run.order > 0 then
+            for _, item in ipairs(run.order) do PB.carried[item] = { chr = chr, m = run.moved[item], ms = run.ms or 0 } end
+        end
+        run = { chr = chr, tick = tick, ms = getTimestampMs(), moved = {}, order = {}, gameBack = {}, equips = false,
                 hands = { chr:getPrimaryHandItem(), chr:getSecondaryHandItem() }, before = itemsOf(chr:getInventory()) }
         runs[chr] = run
         -- (what has already arrived is in run.before, so it can never look new: it needs no remembering) (L1-3)
@@ -104,6 +114,18 @@ function PB.noted(action)
         if run.main then byMain[run.main] = nil end
         run.main = action
         byMain[action] = run
+        -- the game's Read Map queues the read from the move's end (ISInventoryPaneContextMenu.onCheckMap called
+        -- again), a later tick: the move in is the read's own, tied by the map (QA MP53, Nov 27 2026)
+        local item = action.item
+        local c = item and PB.carried[item]
+        if c then
+            PB.carried[item] = nil
+            if CARRY[t] and c.chr == chr and c.m and getTimestampMs() - c.ms <= PB.CARRY_MS and not run.moved[item] then
+                run.order[#run.order + 1] = item
+                run.moved[item] = c.m
+                trace("  carried in: " .. tostring(item:getFullType()) .. " from the run before")
+            end
+        end
     end
 end
 

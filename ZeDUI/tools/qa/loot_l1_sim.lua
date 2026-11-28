@@ -181,6 +181,7 @@ check("L1-2 onFillWorld asks lockedTo, no padlocked() left", IMsrc:find("not loc
 -- ===========================================================================
 ZeD.Settings = { putBackOn = function() return true end }
 local PBsrc = readFile(Z .. "ZeD_PutBack.lua")
+getTimestampMs = getTimestampMs or function() return 1000 end   -- (Put back stamps each run)
 local function putBackCase(markPickup)
     clearQueue()
     local mainI, crateA = mkInv("none"), mkInv("crate")

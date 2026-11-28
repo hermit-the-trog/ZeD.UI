@@ -35,6 +35,7 @@ local function container(kind)
     function c:remove(it) for i = #self.list, 1, -1 do if self.list[i] == it then table.remove(self.list, i) end end; it.cont = nil end
     return c
 end
+getTimestampMs = getTimestampMs or function() return 1000 end   -- (Put back stamps each run)
 local function world()
     local w = {}
     w.main, w.bag = container("none"), container("Bag_Schoolbag")
@@ -226,6 +227,43 @@ do
     check("MP53 Put back holds the read map's move back while the paper is up", backs3() == 0, backs3())
     check("MP53 ... the fold releases it: the map goes back where it came from", ZeD.PutBack.release(w3.book) == true and backs3() == 1, backs3())
     check("MP53 ... once", ZeD.PutBack.release(w3.book) == false and backs3() == 1, backs3())
+    -- MP53 run 2 (QA, Nov 27 2026): the game's Read Map from a bag is two queues on two ticks. onCheckMap queues the
+    -- move alone; the move's end calls onCheckMap again, which queues the read a tick later. The move is tied to
+    -- the read by the map (PB.carried).
+    local tickFns = {}
+    Events = { OnTick = { Add = function(f) tickFns[#tickFns + 1] = f end }, OnGameBoot = { Add = function() end } }
+    getTimestampMs = function() return 1000 end
+    ISTimedActionQueue._zedPutBack = nil
+    print = function() end
+    assert(loadstring(pb))()
+    print = _print
+    local function nextTick() for _, f in ipairs(tickFns) do f() end end
+    local function twoTick(Type, carriedMs)
+        local w4 = world()
+        nextTick()
+        ISTimedActionQueue.add(newTransfer(w4.p, w4.book, w4.bag, w4.main))
+        local q4 = queues[w4.p].queue
+        w4.bag:remove(w4.book); w4.main:add(w4.book)
+        queues[w4.p]:onCompleted(table.remove(q4, 1))
+        nextTick(); nextTick()
+        if carriedMs then getTimestampMs = function() return 1000 + carriedMs end end
+        local act = { Type = Type, character = w4.p, item = w4.book }
+        ISTimedActionQueue.add(act)
+        getTimestampMs = function() return 1000 end
+        table.remove(q4, 1)
+        act._zedBackLater = true
+        queues[w4.p]:onCompleted(act)
+        local function n() local k = 0; for _, a in ipairs(q4) do if a.Type == "ISInventoryTransferAction" and a.destContainer == w4.bag then k = k + 1 end end; return k end
+        return w4, n
+    end
+    local w4, n4 = twoTick("ISReadMapItem")
+    check("MP53 two ticks: the read queued a tick after its move holds the move back while the paper is up",
+        ZeD.PutBack.held[w4.book] ~= nil and n4() == 0, tostring(ZeD.PutBack.held[w4.book] ~= nil) .. " " .. n4())
+    check("MP53 two ticks: the fold sends the map back into its bag", ZeD.PutBack.release(w4.book) == true and n4() == 1, n4())
+    local w5, n5 = twoTick("ISReadABook")
+    check("MP53 two ticks: another action on a thing moved in a run before is not tied to it", ZeD.PutBack.held[w5.book] == nil and n5() == 0, n5())
+    local w6, n6 = twoTick("ISReadMapItem", 60000)
+    check("MP53 two ticks: a read long after the move is not tied to it", ZeD.PutBack.held[w6.book] == nil and n6() == 0, n6())
 end
 
 -- ---------------------------------------------------------------------------
