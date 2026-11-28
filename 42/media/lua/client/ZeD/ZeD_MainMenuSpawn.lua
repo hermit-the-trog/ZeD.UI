@@ -218,13 +218,30 @@ function ZeD_MMSpawn:onShow()
         -- vanilla's map panel moves in here (its data is already loading from fillList)
         local mp = v.mapPanel
         if mp then
-            if getmetatable(mp) ~= ZeD_MMSpawnMap then setmetatable(mp, ZeD_MMSpawnMap) end
-            if mp.parent ~= self then self:addChild(mp) end
+            -- (NG23: what it was, so returnParts can put it back)
+            if getmetatable(mp) ~= ZeD_MMSpawnMap then mp._zedMT = getmetatable(mp); setmetatable(mp, ZeD_MMSpawnMap) end
+            if mp.parent ~= self then
+                if mp.parent and mp.parent ~= self then mp._zedFrom = mp.parent end
+                self:addChild(mp)
+            end
             mp.zedShownKey = nil
         end
     end
     self.nameEntry:unfocus()
     self.seedEntry:unfocus()
+end
+
+-- NG23 (Nov 27 2026): vanilla's map panel goes back to vanilla's screen with its own metatable (and so its own
+-- mouse handlers) when this view is left or safe mode hands the menu back; onShow takes it again
+function ZeD_MMSpawn:returnParts()
+    local v = vanilla()
+    local mp = v and v.mapPanel
+    if not mp or mp.parent ~= self then return end
+    if getmetatable(mp) == ZeD_MMSpawnMap then setmetatable(mp, mp._zedMT or MapSpawnSelectImage) end
+    local home = mp._zedFrom or v
+    home:addChild(mp)   -- (ISUIElement:addChild detaches it from this window first)
+    -- vanilla's own place and size for it (the Coop screen may lack the call)
+    if home == v and v.recalculateMapSize then pcall(function() v:recalculateMapSize() end) end
 end
 
 -- what keeps NEXT from going on: vanilla's checks on the save name, in words

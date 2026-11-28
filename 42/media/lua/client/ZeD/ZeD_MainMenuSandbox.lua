@@ -153,7 +153,12 @@ function ZeD_MMSandbox:rowsFor(page)
             elseif st.type == "enum" then kind = "combo"
             elseif st.advancedCombo then kind = "adv"
             elseif st.type == "entry" or st.type == "string" then kind = "entry" end
-            if kind then rows[#rows + 1] = { kind = kind, control = ctl, label = tostring(st.translatedName or st.name), name = st.name, setting = st } end
+            local label = tostring(st.translatedName or st.name)
+            -- NG30 (Nov 27 2026): the two debug-only shutoff rows take vanilla's debug label (SandboxOptions.lua:658-660)
+            if getDebug() and (st.name == "WaterShutModifier" or st.name == "ElecShutModifier") then
+                label = getText("IGUI_DebugContext_Title") .. " " .. getText("Sandbox_" .. st.name)
+            end
+            if kind then rows[#rows + 1] = { kind = kind, control = ctl, label = label, name = st.name, setting = st } end
         end
     end
     self._rows[page.raw] = rows
@@ -559,12 +564,18 @@ function ZeD_MMSandbox:savePreset()
     s:settingsFromUI(options)
     options:savePresetFile(name)
     s:loadPresets()
+    -- NG39 (Nov 27 2026): the saved file is chosen, not a built-in of the same name (vanilla's loop took the first
+    -- "Apocalypse", the built-in, so the built-in's values loaded over the player's)
+    local pick
     for i, p in ipairs(s.presets) do
-        if p.name == name then
-            s.presetList.selected = i
-            s:onPresetChange()
-            break
+        if p.name == name and (p.userDefined or not pick) then
+            pick = i
+            if p.userDefined then break end
         end
+    end
+    if pick then
+        s.presetList.selected = pick
+        s:onPresetChange()
     end
     self:setConfirm(false)
     self:refreshDiff(true)

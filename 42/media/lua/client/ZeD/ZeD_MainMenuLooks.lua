@@ -130,8 +130,36 @@ function ZeD_MMLooks:nameEntered(e)
     e:unfocus()
 end
 
+-- NG61 (Nov 27 2026): vanilla's voice preview sets the music state to InGame (its own FIXME: the menu music stops)
+-- and nothing sets it back. At the main menu the state goes back to MainMenu once the preview has played, or as
+-- this view is left. (In a game, after a death, InGame is the right state: left alone.)
+local voiceMusic = false
+local function atMainMenu() local m = ms(); return m and not m.inGame end
+local function wrapVoiceDemo(v)
+    local b = v and v.voiceDemoButton
+    if not b or b._zedMusicWrap or not b.onclick then return end
+    b._zedMusicWrap = true
+    local orig = b.onclick
+    b.onclick = function(target, btn, ...)
+        local r = orig(target, btn, ...)
+        if btn and btn.internal == "PLAYDEMOVOICE" and atMainMenu() then voiceMusic = true end
+        return r
+    end
+end
+local function restoreMenuMusic()
+    if not voiceMusic then return end
+    voiceMusic = false
+    if atMainMenu() then pcall(function() getSoundManager():setMusicState("MainMenu") end) end
+end
+local function voicePlaying(v)
+    if not (v and v.soundPlayer and v.soundRef and v.soundRef ~= 0) then return false end
+    local ok, on = pcall(function() return v.soundPlayer:isPlaying(v.soundRef) end)
+    return ok and on and true or false
+end
+
 function ZeD_MMLooks:onShow()
     local v = looks()
+    wrapVoiceDemo(v)
     self.confirm = false
     self.field:setVisible(false)
     self.scroll = 0
@@ -147,6 +175,23 @@ function ZeD_MMLooks:onShow()
     local model = v.avatarPanel and v.avatarPanel.avatarPanel
     if model and model.parent ~= self then self:addChild(model) end
     self._model = model
+end
+
+-- NG62 (Nov 27 2026): vanilla's 3D figure goes back into vanilla's avatar panel, under its turn buttons and pose
+-- list, when this view is left or safe mode hands the menu back; onShow takes it again
+function ZeD_MMLooks:returnParts()
+    local v = looks()
+    local ap = v and v.avatarPanel
+    local model = ap and ap.avatarPanel
+    restoreMenuMusic()   -- (NG61)
+    if not model or model.parent ~= self then return end
+    ap:addChild(model)   -- (ISUIElement:addChild detaches it from this window first)
+    -- (added last it would draw over the buttons: they go back on top, as vanilla built them)
+    for _, k in ipairs({ "turnLeftButton", "turnRightButton", "animCombo" }) do
+        local b = ap[k]
+        if b and b.parent == ap then ap:removeChild(b); ap:addChild(b) end
+    end
+    pcall(function() v:rescaleAvatarViewer() end)
 end
 
 -- the names: our fields follow vanilla's (a new sex or RANDOM re-rolls them) unless typed in
@@ -421,6 +466,7 @@ end
 function ZeD_MMLooks:prerender()
     local T = ZeD.T
     self:syncNames()
+    if voiceMusic and not voicePlaying(looks()) then restoreMenuMusic() end   -- (NG61: the preview has played)
     if not isMouseButtonDown(0) then self._dragX = nil end
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)

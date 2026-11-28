@@ -1027,49 +1027,76 @@ function ZeD_MMNewGame:prerender()
     -- measure: the icon grid, then the description box
     local m = math.min(T.px(MARGIN), math.floor(L.tw / 40))
     local w = L.tw - m * 2
-    local gridW = w - pad * 2
     local cols = ICON_COLS
-    local cellW = math.floor((gridW - T.px(12)) / cols)
-    local iconW = math.min(T.px(ICON_W), cellW - T.px(12))
-    local iconH = math.floor(iconW * ICON_H / ICON_W)
-    -- the icon row is as tall as its tallest picture (challenges are wide screenshots)
-    local tallest = 0
-    for _, it in ipairs(items) do
-        local tex = it.thumb and getTexture(it.thumb) or nil
-        if tex and tex:getWidth() > 0 then
-            tallest = math.max(tallest, math.min(iconH, math.floor(iconW * tex:getHeight() / tex:getWidth())))
-        end
-    end
-    if tallest > 0 then iconH = tallest end
     local f2 = T.fontF2
     local labelH = MM.fontH(f2) + T.px(2)
-    local cellH = T.px(8) + iconH + T.px(8) + labelH + T.px(10)
-    local rows = math.max(1, math.ceil(#items / cols))
-    local gridH = T.px(16) + rows * cellH + T.px(12)
     local d = items[self.sel] or items[1]
-    local descW = gridW - T.px(32)
     local hf = ZeD.Font.sdf.head
     local z = 20 * (T.scale or 1) / (hf.face or 64)
     local bigH = math.floor(ZeD.Text.height(hf, z))
-    local descLines = ZeD.Atoms.wrapText(plain(d and getText(d.desc) or ""), f2, descW)
     local lineH = MM.fontH(f2) + T.px(4)
-    local descH = T.px(14) * 2 + bigH + T.px(4) + #descLines * lineH
+    local gridW, cellW, iconW, iconH, cellH, gridH, descLines, descH
+    local function measure(gw)
+        gridW = gw
+        cellW = math.floor((gridW - T.px(12)) / cols)
+        iconW = math.min(T.px(ICON_W), cellW - T.px(12))
+        iconH = math.floor(iconW * ICON_H / ICON_W)
+        -- the icon row is as tall as its tallest picture (challenges are wide screenshots)
+        local tallest = 0
+        for _, it in ipairs(items) do
+            local tex = it.thumb and getTexture(it.thumb) or nil
+            if tex and tex:getWidth() > 0 then
+                tallest = math.max(tallest, math.min(iconH, math.floor(iconW * tex:getHeight() / tex:getWidth())))
+            end
+        end
+        if tallest > 0 then iconH = tallest end
+        cellH = T.px(8) + iconH + T.px(8) + labelH + T.px(10)
+        local rows = math.max(1, math.ceil(#items / cols))
+        gridH = T.px(16) + rows * cellH + T.px(12)
+        descLines = ZeD.Atoms.wrapText(plain(d and getText(d.desc) or ""), f2, gridW - T.px(32))
+        descH = T.px(14) * 2 + bigH + T.px(4) + #descLines * lineH
+    end
+    measure(w - pad * 2)
     local h = tb + pad + gridH + gap + descH + pad + stripH + self:footerHeight()
     local maxH = L.th - T.px(U.BAR_H) - T.px(TOP_GAP) * 2
-    if h > maxH then h = maxH end
+    -- NG4 (Nov 27 2026): capped at the tube (many challenge mods), the grid and the description scroll as one card
+    -- between the title and the band, with one bar at the right (no scroll inside scroll); measured again for its room
+    local sbW = T.sp.scrollbarW
+    local over = h > maxH
+    if over then
+        h = maxH
+        measure(w - pad * 2 - sbW + T.px(1))
+    end
     placeOnTube(self, h)
     self.title = ZeD.tr(self.challenges and "UI_ZeD_NewGame_TitleChallenges" or "UI_ZeD_NewGame_Title")
     self.titleStats = {}
     ZeD_Window.prerender(self)
 
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    local gx, gy = pad, tb + pad
+    local stripY = self.height - self:footerHeight() - stripH
+    local bodyY = tb + pad
+    local viewH = stripY - pad - bodyY
+    local contentH = gridH + gap + descH
+    self.bodyScroll = over and math.max(0, math.min(self.bodyScroll or 0, contentH - viewH)) or 0
+    -- (a new pick, by key, pad or click, scrolls its icon into view)
+    if over and self._seenSel ~= self.sel then
+        local r0 = math.floor(((self.sel or 1) - 1) / cols)
+        local top = T.px(16) + r0 * cellH
+        if top < self.bodyScroll then self.bodyScroll = top
+        elseif top + cellH > self.bodyScroll + viewH then self.bodyScroll = top + cellH - viewH end
+    end
+    self._seenSel = self.sel
+    self._body = over and { max = contentH - viewH } or nil
+    local gx, gy = pad, bodyY - self.bodyScroll
+    if over then self:setStencilRect(0, bodyY, self.width, viewH) end
     insetBox(self, gx, gy, gridW, gridH)
     local gp = MM.gamepad()
     for i, it in ipairs(items) do
         local r, c = math.floor((i - 1) / cols), (i - 1) % cols
         local cx = gx + T.px(6) + c * cellW
         local cy = gy + T.px(16) + r * cellH
+        -- (scrolled: a cell takes the pointer only while wholly in view)
+        local inView = (not over) or (cy >= bodyY and cy + cellH <= bodyY + viewH)
         if cy + cellH <= gy + gridH then
             local isSel = (i == self.sel)
             local fid = "icon:" .. i
@@ -1092,14 +1119,14 @@ function ZeD_MMNewGame:prerender()
             self:drawText(title, lx, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
             self._specs[#self._specs + 1] = { id = fid, listRow = true, row = r + 1, col = c + 1, fn = function() self:next() end, index = i,
                                               x = cx, y = cy, w = cellW, h = cellH }
-            self._hits[#self._hits + 1] = { id = "newgame:" .. fid, x = ax + cx, y = ay + cy, w = cellW, h = cellH, fn = function() self:clickIcon(i) end }
+            if inView then self._hits[#self._hits + 1] = { id = "newgame:" .. fid, x = ax + cx, y = ay + cy, w = cellW, h = cellH, fn = function() self:clickIcon(i) end } end
             if MM.ctx.hot == "newgame:" .. fid and not gp then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_GameIcon")) end
         end
     end
 
     -- the description: the mode's name and vanilla's words
     local dy = gy + gridH + gap
-    local dh = math.max(T.px(40), self.height - self:footerHeight() - stripH - pad - dy)
+    local dh = over and descH or math.max(T.px(40), self.height - self:footerHeight() - stripH - pad - dy)
     insetBox(self, gx, dy, gridW, dh)
     if d then
         local tc = T.textHead
@@ -1113,9 +1140,14 @@ function ZeD_MMNewGame:prerender()
             ty = ty + lineH
         end
     end
+    if over then
+        self:clearStencilRect()
+        -- (the bar shares the boxes' right edge line)
+        MM.scrollBar(self, "newgame:track", gx + gridW - T.px(1), bodyY, sbW, viewH, self.bodyScroll, contentH,
+            function(v) self.bodyScroll = v end, { step = cellH })
+    end
 
     -- the band at the foot
-    local stripY = self.height - self:footerHeight() - stripH
     stripSpecs(self, stripY, self.width, 1000,
         { { "back", getText("UI_btn_back"), function() self:back() end } },
         { { "mods", getText("UI_NewGame_ChooseMods"), function() self:chooseMods() end },
@@ -1157,17 +1189,27 @@ end
 
 function ZeD_MMNewGame:close() self:back() end
 
+-- NG4 (Nov 27 2026): the wheel scrolls the card while it runs past the tube
+function ZeD_MMNewGame:wheel(del)
+    local b = self._body
+    if not b then return false end
+    self.bodyScroll = math.max(0, math.min(b.max, (self.bodyScroll or 0) + del * ZeD.T.px(40)))
+    return true
+end
+
 -- ============================================================================
 -- THE MOUSE WHEEL: whichever panel the engine hands it to, the view's window gets it
 -- ============================================================================
 -- This file starts the chain: MM.wheel here answers Load Game only, and each other window's
 -- file wraps it for its own view (falling through to the one before).
 function MM.wheel(del)
+    if MM.view == "newgame" and MM.root and MM.root.newWin then return MM.root.newWin:wheel(del) end   -- (NG4)
     if MM.view ~= "load" or not MM.root then return false end
     return MM.root.loadWin:wheel(del)
 end
 function ZeD_MMGlass:onMouseWheel(del) return MM.wheel(del) end
 function ZeD_MMLoad:onMouseWheel(del) return MM.wheel(del) end
+function ZeD_MMNewGame:onMouseWheel(del) return MM.wheel(del) end
 function ZeD_MMDesk:onMouseWheel(del) return MM.wheel(del) end
 
 --- The shared helpers, MM.ui: nearly every ZeD_MainMenu*.lua window (Mods, Options, Sandbox, the
