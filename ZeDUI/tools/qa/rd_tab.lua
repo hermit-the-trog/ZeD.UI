@@ -2076,10 +2076,11 @@ function C.r21()
         if T.off then return end
         T.stopMs = getTimestampMs() - (T.tOff or 0)
         T.offPlay = not ok
-        -- (rd6 and rd7: 2509, 2514 and 2520 ms, the game's own update every time; ZeD stops it at the press since
-        -- 31faa9bbb, so the check asks for 1 s)
-        local stopped25 = ok and T.stopMs <= 1000
-        Q.check(not H.on(T.dev) and stopped25, T.L .. " (B9): turned off by its power key, the disc stops within 1 s (ZeD stops it at the press, as the game's radio window does on its next update, RWMMedia)",
+        -- (rd6 and rd7: 2509, 2514 and 2520 ms. ZeD calls StopPlayMedia at the press (31faa9bbb); in single player the
+        -- game's DeviceData then winds down for stopMediaCounter 150 at 1.25 a frame (about 2.5 s) before isPlayingMedia
+        -- goes false, the same wind-down its own radio window gets. Build, Nov 27 2026: so 3 s)
+        local stopped25 = ok and T.stopMs <= 3000
+        Q.check(not H.on(T.dev) and stopped25, T.L .. " (B9): turned off by its power key, the disc stops within 3 s (ZeD's stop at the press, then the game's own 2.5 s wind-down, DeviceData stopMediaCounter)",
             "on " .. tostring(H.on(T.dev)) .. "; the game's isPlayingMedia went false after " .. (ok and (T.stopMs .. " ms") or "more than 10 s")
             .. " (still playing at 2.5 s: " .. tostring(T.at25) .. "; playing before " .. tostring(T.p0) .. "); ZeD's power (RadioOps.power) stops it by wasOn")
         local cw = RT.cw()
