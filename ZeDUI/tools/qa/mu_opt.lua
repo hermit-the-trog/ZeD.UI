@@ -22,14 +22,17 @@
 --   sub-pages    the button map (Back, B, Escape, the labels' pull-down) and the sounds page (categories, volumes,
 --                no Reload) (OP65, OP68 to OP70)
 --   welcome      opened by MM.openWelcome: layout, Save setup greyed, a pick live, Playing with, Lite then Full,
---                the Tutorial it starts on, B (Skip) only when ZeD_setup_seen.txt was there before (OP71 to OP79)
+--                the Tutorial it starts on, B back one step from a choice; B on the way cards (the close box: the
+--                picks kept, the seen file written) only when ZeD_setup_seen.txt was there before (OP71 to OP79)
 --   setup file   Save setup; the welcome's Load (done with Load picked) on three staged lines and on a file with no
 --                valid line (OP75 to OP77)
 -- Not stageable here, one SKIP each with the reason: OP2, OP22, OP34, OP35, OP39, OP41, OP42, OP50, OP58, OP66, OP67
 -- (by hand), OP40, OP62, OP64 (in game), the in-game parts of OP1 and OP21, Apply itself (OP38, OP51).
 -- NEVER pressed or called: Apply (the window's or the game's MainOptions:apply: it re-sets the screen mode and sets
 -- the frame rate from its list, display settings this script must never touch), Accept on the welcome (done is
--- pressed only with Load picked, on the staged setup file, OP75 and OP76), a chord's pick or X, Play or Stop on
+-- pressed only with Load picked, on the staged setup file, OP75 and OP76, and as the close box through B on the way
+-- cards, OP72, only when ZeD_setup_seen.txt was there before), a chord's pick or X kept (one pick, OP24, and Reset to
+-- defaults' chord resets, OP28, are made only while Options holds the chords, then the window's Discard), Play or Stop on
 -- the sounds page, any sound volume, the Advanced sound button itself, Take it, the screen-settings question's answers, Safe mode, display mode,
 -- fullscreen, borderless, resolution, VSync, Pause on focus loss, the language, Quit, Reset Lua.
 -- What it puts back itself: every ZeD option as found (K.snapAll, compared at the end), the look, the UI scale and
@@ -37,8 +40,9 @@
 -- ModOptions.ini line for line, keysB42.ini (only should a key have been written: the game's keys read again),
 -- ZeD_tutorial.txt and ZeD_setup_seen.txt when they were there, ZeD_custom_additions.txt when it was there,
 -- the setup file used for OP75 to OP77 (ZeD_setup.txt line for line when it was there; else the test file
--- Lua/ZeD_qa_mu_opt_setup.txt, left empty: Lua cannot delete a file), ZeD_chords.txt untouched (Reset to defaults
--- is pressed with ZeD.QuickChords.reset counted, not run), a mod's key bind (OP49) set back by hand.
+-- Lua/ZeD_qa_mu_opt_setup.txt, left empty: Lua cannot delete a file), ZeD_chords.txt untouched (the chords picked
+-- or reset only while Options holds them, never applied; with no hold Reset to defaults' chord reset is counted, not
+-- run), a mod's key bind (OP49) set back by hand.
 --
 -- Run (never while the game runs; the runner checks Lua/zedqa.lock itself):
 --   pwsh ZeDUI/tools/qa/zedqa_menu_mods_run.ps1 -ModList ZeDUI/tools/qa/zed_only_mods.txt `
@@ -846,7 +850,39 @@ function X.sChord(w)
     for _, it in ipairs(items) do if type(it) == "table" and it.fn and not it.disabled then live = live + 1 end end
     check(getSpecificPlayer(0) == nil and live == 1 and type(items[1]) == "table" and items[1].fn ~= nil, "OP24: at the main menu a chord's list offers None alone (the actions need a player)",
         #items .. " items, " .. live .. " live")
-    note("OP24: a chord's pick or X saves at once (ZeD_chords.txt), is not counted as a change and Discard does not bring it back (code read; no chord picked here)")
+    -- (the director's pick, Nov 27: while Options is up a chord pick waits for Apply and Discard brings it back. A pick
+    -- is made only while the hold is on, so ZeD_chords.txt is never written; never Apply.)
+    local Q = ZeD.QuickChords
+    if not (Q and Q.held and Q.pendingCount and Q.isPending and Q.revert) then
+        check(false, "OP24: ZeD.QuickChords holds the picks while Options is up (hold, pendingCount, isPending, revert)")
+        return
+    end
+    if not Q.held() then
+        check(false, "OP24: Options holds the chords while it is up", "no hold: a pick would write ZeD_chords.txt at once, so none is made")
+        return
+    end
+    local c = r.chord
+    local p0, w0 = Q.get(c)
+    local c24 = { path = p0, words = table.concat(w0 or {}, "\t"), def = Q.isDefault(c), n0 = w:changedCount(),
+                  file = K.readLines("ZeD_chords.txt"), spare = K.readLines("ZeD_chords_spare.txt") }
+    -- the window's own None when the chord runs something; else a QA path in its place (never run: no player here)
+    if p0 ~= nil and type(items[1]) == "table" and items[1].fn then
+        K.try("OP24: None picked on " .. tostring(c), items[1].fn)
+    else
+        K.try("OP24: a chord picked on " .. tostring(c), function() Q.set(c, "zedqa:24", { "ZeDQA" }) end)
+    end
+    local n1, any1, mark1 = w:changedCount(), w:anyChanged(), w:isChanged(r)
+    check(Q.isPending(c) and mark1 and any1 == true and n1 == c24.n0 + 1, "OP24: a chord pick counts as a change (anyChanged, changedCount and its row's mark)",
+        "pending " .. tostring(Q.isPending(c)) .. ", row marked " .. tostring(mark1) .. ", anyChanged " .. tostring(any1) .. ", changedCount " .. tostring(c24.n0) .. " to " .. tostring(n1))
+    local same1 = K.same(K.readLines("ZeD_chords.txt"), c24.file) and K.same(K.readLines("ZeD_chords_spare.txt"), c24.spare)
+    check(same1, "OP24: held, the pick writes nothing (ZeD_chords.txt and its spare as they were)")
+    K.try("OP24: the window's Discard", function() w:discardStay() end)
+    local p2, w2 = Q.get(c)
+    local back = p2 == p0 and table.concat(w2 or {}, "\t") == c24.words and Q.isDefault(c) == c24.def and not Q.isPending(c)
+    check(back and Q.pendingCount() == 0 and Q.held(), "OP24: Discard brings the chord back (nothing pending, the hold kept while the window stays)",
+        tostring(c) .. " " .. tostring(p0) .. " to " .. tostring(p2) .. ", pending " .. tostring(Q.pendingCount()) .. ", held " .. tostring(Q.held()))
+    local same2 = K.same(K.readLines("ZeD_chords.txt"), c24.file) and K.same(K.readLines("ZeD_chords_spare.txt"), c24.spare)
+    check(same2 and not w:anyChanged(), "OP24: Discard wrote nothing and nothing waits (ZeD_chords.txt as it was)", "anyChanged " .. tostring(w:anyChanged()))
 end
 function X.structure()
     after(300, O(function(w) K.toPage(w, "zed") end))
@@ -1342,11 +1378,26 @@ function X.defaults()
         check(d ~= nil and not d.disabled, "OP28: with a ZeD option off its start, Reset to defaults is live")
         keep.defStyle = K.zrow(w, "lookStyle") and K.zrow(w, "lookStyle").control.selected
         keep.defBefore = "safeMode " .. tostring(K.live("safeMode")) .. ", inputModeLock " .. tostring(K.live("inputModeLock"))
-        -- (the chords reset at once and would write ZeD_chords.txt: reset is counted here, not run)
+        -- (OP24, the director's pick Nov 27: a chord reset waits for Apply while Options holds the chords, so it runs
+        -- for real here, counted; with no hold it would write ZeD_chords.txt at once: then it is counted, not run)
         local Q = ZeD.QuickChords
         keep.resets = 0
         keep.qReset = Q.reset
-        Q.reset = function() keep.resets = keep.resets + 1 end
+        keep.chHeld = (Q.held and Q.held()) and true or false
+        keep.chFile0 = K.readLines("ZeD_chords.txt")
+        keep.chPend0 = (Q.pendingCount and Q.pendingCount()) or 0
+        keep.chOff0, keep.chWas = 0, {}
+        for _, c in ipairs(Q.CHORDS or {}) do
+            local p, ws = Q.get(c)
+            keep.chWas[c] = { def = Q.isDefault(c), path = p, words = table.concat(ws or {}, "\t") }
+            if not Q.isDefault(c) then keep.chOff0 = keep.chOff0 + 1 end
+        end
+        local real = keep.qReset
+        if keep.chHeld then
+            Q.reset = function(c) keep.resets = keep.resets + 1; return real(c) end
+        else
+            Q.reset = function() keep.resets = keep.resets + 1 end
+        end
         local why = K.press(w, "defaults")
         Q.reset = keep.qReset
         keep.qReset = nil
@@ -1370,10 +1421,24 @@ function X.defaults()
         if ts and ts.control.selected ~= K.idx(St.sizeKeys, St.defaultSizeKey) then bad[#bad + 1] = "Text size " .. tostring(ts.control.selected) end
         local nCh = #((ZeD.QuickChords and ZeD.QuickChords.CHORDS) or {})
         if keep.resets ~= nCh then bad[#bad + 1] = "chords reset " .. tostring(keep.resets) .. " of " .. nCh end
-        check(#bad == 0, "OP28: Reset to defaults puts every row, the hidden and debug options and the give-backs on their start, leaves Style, resets every chord at once, Text size to the screen's default",
+        check(#bad == 0, "OP28: Reset to defaults puts every row, the hidden and debug options and the give-backs on their start, leaves Style, resets every chord, Text size to the screen's default",
             K.short(bad))
+        -- (OP24: the chord resets wait for Apply like the rows; Discard below brings them back)
+        local Q = ZeD.QuickChords
+        if not keep.chHeld then
+            check(false, "OP28: the chord resets wait for Apply (Options holds the chords)", "no hold: the resets were counted, not run")
+        else
+            local off = {}
+            for _, c in ipairs(Q.CHORDS or {}) do if not Q.isDefault(c) then off[#off + 1] = c end end
+            local pend = Q.pendingCount()
+            local pendOk = (keep.chPend0 ~= 0) or pend == keep.chOff0
+            check(#off == 0 and pendOk and K.same(K.readLines("ZeD_chords.txt"), keep.chFile0),
+                "OP28: every chord back on its default, waiting for Apply: counted as changes and ZeD_chords.txt not written",
+                "still off " .. K.short(off) .. "; pending " .. tostring(pend) .. " (" .. tostring(keep.chOff0) .. " were off their default)")
+        end
         note("OP29: one press of Reset to defaults also sets " .. keep.defBefore .. " to safeMode " .. tostring(K.live("safeMode")) .. ", inputModeLock " .. tostring(K.live("inputModeLock"))
-            .. " and every give-back to ZeD's own (pending until Apply): a player who gave a screen back gets ZeD's again on the next Apply")
+            .. " and every give-back to ZeD's own (pending until Apply): a player who gave a screen back gets ZeD's again on the next Apply"
+            .. "; the director's call (Nov 27): no change, Reset to defaults resets everything")
     end))
     after(300, O(function(w)
         if keep.noDef then return end
@@ -1382,7 +1447,20 @@ function X.defaults()
     end))
     waitFor(function() return K.settled() end, 4000, function() end)
     X.discard("Reset to defaults")
-    after(100, function() K.errCheck("Reset to defaults") end)
+    after(100, function()
+        if not keep.noDef and keep.chHeld and keep.chWas then
+            local Q = ZeD.QuickChords
+            local moved = {}
+            for _, c in ipairs(Q.CHORDS or {}) do
+                local was = keep.chWas[c]
+                local p, ws = Q.get(c)
+                if was and (Q.isDefault(c) ~= was.def or p ~= was.path or table.concat(ws or {}, "\t") ~= was.words) then moved[#moved + 1] = c end
+            end
+            check(#moved == 0 and K.same(K.readLines("ZeD_chords.txt"), keep.chFile0), "OP28: Discard brings every chord back as it was before Reset to defaults (ZeD_chords.txt not written)",
+                K.short(moved))
+        end
+        K.errCheck("Reset to defaults")
+    end)
 end
 function X.looks()
     -- OP48: the live previews put back by Discard
@@ -2130,29 +2208,72 @@ function X.welcome()
         K.onScreen("the welcome after the picks", w)
         K.errCheck("the welcome's picks")
     end))
-    -- OP72: B (Skip) only when the seen file was there before (Skip writes it; Lua cannot delete it)
+    -- OP72 (the director's pick, Nov 27): B steps back one step; on the way cards it does what the close box does (the
+    -- picks kept, ZeD_setup_seen.txt written), as Escape and the way out do; Skip only from its own button. The close
+    -- itself only when the seen file was there before (it writes it; Lua cannot delete it).
     after(300, WE(function(w)
+        keep.wPicked = K.snapAll()
+        local seenB = K.readLines(keep.seenF)
+        w.way = 1
+        w.focusId = "opt:theme:1"
+        MM.forceGamepad = true
+        local p1, p2 = nil, nil
+        pcall(function() p1 = w:getFooterPrompts() end)
+        K.try("OP72: B on a choice", function() w:joyB() end)
+        local f1, v1 = w.focusId, MM.view
+        pcall(function() p2 = w:getFooterPrompts() end)
+        MM.forceGamepad = keep.pad0
+        local b1 = p1 and p1[2] and p1[2].label
+        local b2 = p2 and p2[2] and p2[2].label
+        local backW, closeW = ZeD.btnCase(getText("UI_btn_back")), getText("UI_Close")
+        check(f1 == "way:1" and v1 == "welcome", "OP72: B on a choice steps back to the picked way's card and the welcome stays",
+            "focus " .. tostring(f1) .. ", view " .. tostring(v1))
+        local d1 = K.diff(keep.wPicked, K.snapAll())
+        check(#d1 == 0 and K.same(K.readLines(keep.seenF), seenB), "OP72: that B keeps every pick and writes nothing", K.short(d1))
+        check(b1 == backW and b2 == closeW, "OP72: the footer's B says " .. tostring(backW) .. " on a choice and " .. tostring(closeW) .. " on the way cards",
+            "on a choice " .. tostring(b1) .. ", on the way cards " .. tostring(b2))
+        -- Escape, the way out (back) and B on the way cards, with close and Skip stood in for (nothing written)
+        local own = { close = rawget(w, "close"), skip = rawget(w, "skip") }
+        local n = { close = 0, skip = 0 }
+        w.close = function() n.close = n.close + 1 end
+        w.skip = function() n.skip = n.skip + 1 end
+        pcall(function() w:keyEscape() end)
+        pcall(function() w:back() end)
+        w.focusId = "way:1"
+        pcall(function() w:joyB() end)
+        w.close, w.skip = own.close, own.skip
+        check(n.close == 3 and n.skip == 0, "OP72: Escape, the way out and B on the way cards do what the close box does, never Skip (close and Skip stood in for)",
+            n.close .. " closes, " .. n.skip .. " skips")
+        w.focusId = "way:1"
         if keep.seen0 == nil then
             keep.noSkip = true
-            skip("OP72: B (Skip) on the welcome throws every pick away", "ZeD_setup_seen.txt was not there before and Skip would make it: the options put back by hand")
+            note("OP72: B on the way cards itself (the close box: the picks kept, ZeD_setup_seen.txt written) not pressed: the file was not there before and Lua cannot delete it; the options put back by hand")
             K.setAll(keep.wSnap)
             pcall(function() St.applyThemeNow() end)
             MM.showView("main")
             return
         end
-        K.try("OP72: B on the welcome", function() w:joyB() end)
+        K.try("OP72: B on the way cards", function() w:joyB() end)
     end))
     waitFor(function() return keep.noWel or MM.view == "main" end, 4000, function(met)
         if keep.noWel then return end
-        local d = K.diff(keep.wSnap, K.snapAll())
         if keep.noSkip then
+            local d = K.diff(keep.wSnap, K.snapAll())
             check(#d == 0, "Welcome: left by hand, every option as the window found it", K.short(d))
             check(K.readLines(keep.seenF) == nil, "Welcome: ZeD_setup_seen.txt was not made")
             return
         end
-        if not check(MM.view == "main", "OP72: B leaves the welcome to the main window", "view " .. tostring(MM.view)) then K.rescue() end
-        check(#d == 0, "OP72: B throws every pick away (every option as the window found it)", K.short(d))
-        note("OP72: B, the pad's usual way back, is Skip: every pick thrown away and ZeD_setup_seen.txt written (seen " .. tostring(WL.seen()) .. "); the close box keeps the picks")
+        if not check(MM.view == "main", "OP72: B on the way cards closes the welcome to the main window, as the close box", "view " .. tostring(MM.view)) then K.rescue() end
+        local dk = K.diff(keep.wPicked, K.snapAll())
+        local seen = K.readLines(keep.seenF)
+        check(#dk == 0, "OP72: B on the way cards keeps every pick (the close box's way, not Skip)", K.short(dk))
+        check(seen ~= nil and seen[1] == "1", "OP72: and marks the setup seen", "ZeD_setup_seen.txt " .. tostring(seen and seen[1]))
+        -- (the picks put back by hand, as the window found them)
+        K.setAll(keep.wSnap)
+        pcall(function() St.applyThemeNow() end)
+        pcall(function() if St.saveNow then St.saveNow() end end)
+        local d2 = K.diff(keep.wSnap, K.snapAll())
+        check(#d2 == 0, "Welcome: the picks put back by hand, every option as the window found it", K.short(d2))
     end)
     after(200, function() K.errCheck("the welcome") end)
 end

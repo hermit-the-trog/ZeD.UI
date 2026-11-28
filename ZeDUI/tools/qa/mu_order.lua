@@ -16,7 +16,9 @@
 --   words        every UI_ZeD key the three page files name has an English entry
 -- After each part: nothing threw (every call under test is pcalled, and getLuaDebuggerErrorCount is compared).
 -- NEVER pressed: Accept with a change, Reload, Quit and restart, anything that reaches Steam, Delete's Yes on a save, the Mods page's Back
--- while the order differs (it would reload Lua); Done only on the mods in use, and the order is put back at once.
+-- while the order differs (it would reload Lua), Keep on "Keep the new order?" (it writes the order: Cancel and Discard
+-- changes only, MO40; a page left after a move by the script goes through leaveOrder(false), the Discard way); Done
+-- only on the mods in use, and the order is put back at once.
 --
 -- What it puts back itself: ZeD.ModFolders.FILE; the text of Lua/ZeDQA_ModFolders.cfg, Lua/ZeD_modfolders.txt,
 -- Lua/ZeD_folder_colors.txt, Lua/ZeD_modfolders_spare.txt, Lua/ZeD_modprofiles.txt and Lua/ZeD_modprofiles_spare.txt
@@ -259,6 +261,9 @@ function K.unhold(w)
     if not w then return end
     pcall(function()
         if w.confirm then w:setConfirm(false) end
+        -- (MO40, Nov 27 2026: an order page left after a move asks "Keep the new order?": it is left the Discard way,
+        -- nothing kept)
+        if w.page == "order" or w.page == "maps" then K.fakeOff(w); w:leaveOrder(false) end
         if K.model() and w:changed() then note("Mods: a change was waiting on the way out: Undo changes first (leaving now asks)"); w:revert() end
     end)
 end
@@ -331,6 +336,7 @@ end
 -- Back with nothing waiting (Accept); when that would reload Lua, the screen is left as the menu bar leaves it
 function K.leaveMods(w)
     w = w or K.W()
+    if w and (w.page == "order" or w.page == "maps") then K.unhold(w) end
     if w and K.model() and w:changed() then K.unhold(w) end
     local why = K.backReloads(w)
     if why then
@@ -351,6 +357,16 @@ function K.leaveMods(w)
 end
 function K.spec(w, id)
     for _, s in ipairs((w and w._specs) or {}) do if s.id == id then return s end end
+    return nil
+end
+-- a control pressed as the player's click or A: its own fn; returns nil, or why it could not be pressed
+function K.press(w, id)
+    local s = K.spec(w, id)
+    if not s then return "no control " .. id end
+    if s.disabled then return id .. " is greyed" end
+    if not s.fn then return id .. " does nothing" end
+    local ok, e = pcall(s.fn)
+    if not ok then return id .. ": " .. tostring(e) end
     return nil
 end
 function K.noteText(w) return (w and w.note and w.note.text) or "" end
@@ -495,6 +511,9 @@ function K.clean(w)
     w.oUndo, w.oOffHere, w.oSepSel, w.oHeldSel = {}, {}, nil, nil
     w.oSel, w.scroll, w.focusId = 1, 0, "orow:1"
     w:orderChanged()
+    -- (MO40, Nov 27 2026: the cleaned page counts as the page as opened, so a move after it is the one that asks)
+    w._orderStart = table.concat(w.order or {}, ";")
+    w._orderStartLo = ZeD_MMMods.orderLoSig and ZeD_MMMods.orderLoSig(w.oLo) or nil
 end
 -- the mods in use under separators: defs = { { name, ids, on } }, the rest at the top
 function K.realSeps(w, defs)
@@ -1601,23 +1620,64 @@ end
 -- =========================================================================================================
 -- 7: the load order page with the mods in use (no mod turned on or off): Back, Done
 function X.realBack()
+    -- MO40 (the director's pick, Nov 27): with no move B leaves as before; after a move B and Escape ask "Keep the new
+    -- order?" (Keep, Discard changes, Cancel), the pad on Cancel. Cancel stays; Discard changes leaves as Back did.
+    -- Keep is never pressed (it writes the order).
     after(250, M(function(w)
         if w.page ~= "list" then K.fakeOff(w); w:leaveOrder(false) end
+        keep.m40 = nil
         K.try("the load order page opened", function() w:enterOrder("order") end)
         if w.page ~= "order" then check(false, "MO40: the load order page opens", tostring(w.page)); return end
         K.clean(w)
-        if #w.order >= 2 then w:orderSelectAt(1, false); w:move(1) end
-        local moved = #(w.oUndo or {}) > 0
-        if w.page == "order" then w:joyB() end
-        local b = w.page == "list" and not w.confirm and K.activeIds() == keep.ids0
+        w:joyB()
+        check(w.page == "list" and not w.confirm and K.activeIds() == keep.ids0, "MO40: with no move B leaves the load order page with no question",
+            "page " .. tostring(w.page) .. ", question " .. tostring(w.confirm))
+        if w.page ~= "list" then if w.confirm then w:setConfirm(false) end; w:leaveOrder(false) end
         K.try("the load order page opened again", function() w:enterOrder("order") end)
+        if w.page ~= "order" then return end
         K.clean(w)
         if #w.order >= 2 then w:orderSelectAt(1, false); w:move(1) end
-        if w.page == "order" and (w.find:getInternalText() or "") == "" and not w.find:isFocused() then w:keyEscape() end
-        local e = w.page == "list" and not w.confirm and K.activeIds() == keep.ids0 and MM.view == "mods"
-        note("MO40: B and Escape leave the load order page after a move with no question (B " .. K.b(b) .. ", Escape " .. K.b(e) .. "; a move made: " .. K.b(moved)
-            .. "); the order in memory stays as it was; the game's own panel asks whether to keep a changed order")
-        if w.page ~= "list" then w:leaveOrder(false) end
+        if not w:orderMoved() then
+            skip("MO40: Keep the new order? after a move", "fewer than two mods in use: no move to make")
+            w:leaveOrder(false)
+            return
+        end
+        w:joyB()
+        keep.m40 = { page = w.page, c = w.confirm, f = w.focusId }
+    end))
+    after(250, M(function(w)
+        local r = keep.m40
+        if not r then return end
+        check(r.page == "order" and r.c == "orderkeep", "MO40: after a move B asks Keep the new order? and stays on the page",
+            "page " .. tostring(r.page) .. ", question " .. tostring(r.c))
+        check(r.f == "confirm:no", "MO40: the question lands the pad on Cancel", "the pad on " .. tostring(r.f))
+        local yes, dis, no = K.spec(w, "confirm:yes"), K.spec(w, "confirm:discard"), K.spec(w, "confirm:no")
+        check(tostring(w._bandAsk) == ZeD.tr("UI_ZeD_Order_AskKeep") and yes ~= nil and yes.text == getText("ContextMenu_Keep") and dis ~= nil
+            and no ~= nil and no.text == getText("UI_btn_cancel"), "MO40: the question's words and its answers (Keep, Discard changes, Cancel)",
+            "the band says \"" .. tostring(w._bandAsk) .. "\"; " .. tostring(yes and yes.text) .. ", " .. tostring(dis and dis.text) .. ", " .. tostring(no and no.text))
+        -- Cancel, once: the page and the move stay
+        local why = "no question open"
+        if w.confirm == "orderkeep" then why = K.press(w, "confirm:no") end
+        check(why == nil and w.page == "order" and not w.confirm and w:orderMoved(), "MO40: Cancel stays on the page with the move",
+            tostring(why) .. "; page " .. tostring(w.page) .. ", question " .. tostring(w.confirm))
+        -- Escape asks the same (with Find empty and no picker up, Escape is the page's way out)
+        local plain = (w.find:getInternalText() or "") == "" and not w.find:isFocused() and not w.pick
+        if w.page == "order" and plain then w:keyEscape() end
+        r.e = { page = w.page, c = w.confirm, f = w.focusId, plain = plain }
+    end))
+    after(250, M(function(w)
+        local r = keep.m40
+        if not (r and r.e) then return end
+        check(r.e.plain and r.e.page == "order" and r.e.c == "orderkeep" and r.e.f == "confirm:no", "MO40: Escape after a move asks too, the pad on Cancel",
+            "page " .. tostring(r.e.page) .. ", question " .. tostring(r.e.c) .. ", the pad on " .. tostring(r.e.f))
+        -- Discard changes: the page left as Back did, the order in use untouched (never Keep: it writes the order)
+        local why = "no question open"
+        if w.confirm == "orderkeep" then why = K.press(w, "confirm:discard") end
+        check(why == nil and w.page == "list" and not w.confirm and K.activeIds() == keep.ids0 and MM.view == "mods",
+            "MO40: Discard changes leaves the load order page, the order in use as it was",
+            tostring(why) .. "; page " .. tostring(w.page) .. ", question " .. tostring(w.confirm) .. ", view " .. tostring(MM.view))
+        if w.page ~= "list" then if w.confirm then w:setConfirm(false) end; w:leaveOrder(false) end
+        keep.m40 = nil
     end))
     after(250, M(function(w)
         K.try("the load order page opened", function() w:enterOrder("order") end)

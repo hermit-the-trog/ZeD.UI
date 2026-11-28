@@ -22,7 +22,9 @@
 --   Workshop     MS.ws faked (four items, none of them a mod here): rows, tags, the pane's reason, the empty lines
 --   pad          the prompts at each stop, B back to the stop that asked, Up and Down under a question, Find to Hide
 --   Lite         Style set to Lite and back: the tab falls back to All, the star, the band
--- NEVER pressed or called: Accept, Reload, Keep, Quit to restart, Open in Steam, Open Workshop, Homepage, a Workshop
+-- NEVER pressed or called: Accept, Reload, Keep, Quit to restart, Open in Steam, Open Workshop, Homepage's Yes (its
+-- question is opened and answered No only, MM31, with openUrl stood in for), Load on No mods (only picked, MM25; the one
+-- profile loaded is the QA one with a mod not installed, MM58, then Undo changes), a Workshop
 -- row's second click, Reset settings, Pick files, a file switch, Fine hide this, Load after (only when a conflict offers
 -- it, then Undo changes), Back with nothing waiting (it accepts). Discard changes runs only with the window's accept
 -- stood in (MM2, MM64: the stand-in counts the call and runs the held move, never acceptChanges). The window is left
@@ -986,13 +988,29 @@ function X.records()
         w._templateFor = nil
         check(not w.confirm and w.focusId == keep.tFocus and not w:changed(), "MM23: Cancel shuts the template question, back on the row that asked, nothing turned on", tostring(w.focusId))
     end))
+    -- MM25 (the director's pick, Nov 27): No mods has no question of its own; while it is picked and ZeD-GUI is on, the
+    -- Profiles band says it turns ZeD-GUI off too. No mods is only picked here, never loaded.
+    after(200, M(function(w)
+        K.try("MM25: the Profiles page", function() w:enterProfiles() end)
+        w.psel = nil
+    end))
+    after(250, M(function(w)
+        local zm = K.model() and K.model().mods and K.model().mods["ZeD_UI"]
+        local want = K.tr("UI_ZeD_Mods_NoModsZeD")
+        local ask = w._bandAsk
+        check(w.page == "profiles" and w.psel == nil and zm ~= nil and zm.isActive and ask == want and want ~= "UI_ZeD_Mods_NoModsZeD",
+            "MM25: No mods picked with ZeD-GUI on: the Profiles band says No mods turns ZeD-GUI off too",
+            "page " .. tostring(w.page) .. ", picked " .. tostring(w.psel) .. ", ZeD-GUI on " .. tostring(zm and zm.isActive) .. ", the band says \"" .. tostring(ask) .. "\"")
+        check(not w.confirm and not w:changed(), "MM25: picking No mods asks nothing and changes nothing (never loaded)", "question " .. tostring(w.confirm))
+        w:leaveProfiles()
+    end))
     -- MM25 (read only) and MM24 (Turn every mod on, then Undo changes)
     after(200, M(function(w)
         local diff = w:profileDiff({ name = nil })
         local names = {}
         local zed = false
         for _, d in ipairs(diff.off or {}) do names[#names + 1] = tostring(d.modId); if d.modId == "ZeD_UI" then zed = true end end
-        note("MM25: design call: No mods would turn off " .. #names .. " mod(s) (" .. K.short(names) .. ")" .. (zed and ", ZeD-GUI among them; nothing says the next reload drops ZeD" or "") .. " (not loaded)")
+        note("MM25: No mods would turn off " .. #names .. " mod(s) (" .. K.short(names) .. ")" .. (zed and ", ZeD-GUI among them (the Profiles band says so, checked above)" or "") .. " (not loaded)")
         local fn = nil
         for _, it in ipairs(w:moreItems()) do if type(it) == "table" and it.text == K.tr("UI_ZeD_Mods_MoreAllOn") then fn = it.fn end end
         if not fn then keep.noAllOn = true; check(false, "MM24: More has Turn every mod on", "not in the menu"); return end
@@ -1032,6 +1050,44 @@ function X.detail()
     after(200, M(function(w)
         w.filter = "all"; w.sel = "ZeD_UI"; w.fsel = nil; w.dtab = "about"; w.dscroll = 0
     end))
+    -- MM31 (the director's pick, Nov 27): Homepage asks first, the game's question (UI_mods_openModUrl, No and Yes),
+    -- the pad on No. Only No is ever answered; openUrl is stood in for while the question is up (nothing opens).
+    after(300, M(function(w)
+        local d = K.model().mods["ZeD_UI"]
+        local url = ""
+        pcall(function() url = tostring(d.modInfo:getUrl() or "") end)
+        keep.m31 = nil
+        if not K.spec(w, "homepage") then
+            skip("MM31: Homepage's question", "no Homepage button for ZeD-GUI (url \"" .. url .. "\")")
+            return
+        end
+        keep.m31 = { url = url, opened = 0, open0 = openUrl }
+        openUrl = function() keep.m31.opened = keep.m31.opened + 1 end
+        w.focusId = "homepage"
+        local why = K.press(w, "homepage")
+        keep.m31.why, keep.m31.c, keep.m31.f, keep.m31.u = why, w.confirm, w.focusId, w._homeUrl
+    end))
+    after(250, M(function(w)
+        local r = keep.m31
+        if not r then return end
+        check(r.why == nil and r.c == "homepage" and r.opened == 0, "MM31: Homepage asks first and opens nothing",
+            tostring(r.why) .. "; question " .. tostring(r.c) .. ", opened " .. r.opened)
+        check(r.f == "confirm:no", "MM31: the question lands the pad on No", "the pad on " .. tostring(r.f))
+        check(r.u == r.url, "MM31: the question holds the mod's own page", tostring(r.u))
+        local no, yes = K.spec(w, "confirm:no"), K.spec(w, "confirm:yes")
+        check(w._bandAsk == getText("UI_mods_openModUrl") and no ~= nil and no.text == getText("UI_No") and yes ~= nil and yes.text == getText("UI_Yes"),
+            "MM31: the game's question and its words (UI_mods_openModUrl, No and Yes)",
+            "the band says \"" .. tostring(w._bandAsk) .. "\"; " .. tostring(no and no.text) .. ", " .. tostring(yes and yes.text))
+        -- (No only: never Yes)
+        local why = nil
+        if w.confirm == "homepage" then why = K.press(w, "confirm:no") else why = "no question open" end
+        check(why == nil and not w.confirm and r.opened == 0 and w.focusId == "homepage",
+            "MM31: No closes the question, opens nothing and puts the pad back on Homepage",
+            tostring(why) .. "; question " .. tostring(w.confirm) .. ", opened " .. r.opened .. ", focus " .. tostring(w.focusId))
+        if w.confirm then w:setConfirm(false) end
+        openUrl = r.open0
+        keep.m31.open0 = nil
+    end))
     after(300, M(function(w)
         local d = K.model().mods["ZeD_UI"]
         if not d then check(false, "the pane: ZeD-GUI is in the list"); return end
@@ -1040,10 +1096,6 @@ function X.detail()
         local posters = 0
         pcall(function() posters = d.modInfo:getPosterCount() end)
         note("MM29: design call: About has no Path or Source line and draws poster 1 only (ZeD-GUI has " .. posters .. " poster(s)); its verbs: " .. table.concat(ids, ", "))
-        local url = ""
-        pcall(function() url = tostring(d.modInfo:getUrl() or "") end)
-        local hp = K.spec(w, "homepage")
-        note("MM31: design call: " .. (hp and "Homepage is a pane button that opens the mod's page at once, with no question (not pressed: it opens a browser)" or ("no Homepage button for ZeD-GUI (url \"" .. url .. "\")")))
         local bad = K.paneFit(w)
         check(#bad == 0, "MM32: the pane's verbs sit inside the pane (ZeD-GUI, this text size)", K.short(bad))
         check(#bad == 0, "MM33: the detail tabs sit inside the pane (ZeD-GUI, this text size)", K.short(bad))
@@ -1972,6 +2024,7 @@ end
 function X.putBack()
     after(300, function()
         pcall(function() local w = K.W(); if w and w.confirm then w:setConfirm(false) end end)
+        pcall(function() if keep.m31 and keep.m31.open0 then openUrl = keep.m31.open0; keep.m31.open0 = nil end end)
         pcall(function() local p = K.prompt(); if p and p._zedModsNag then note("put back: the About mods note was still up: OK"); p:press(p.ok) end end)
         pcall(function() local w = K.W(); if w then w.paneText = nil; w.accept = nil end end)
         pcall(function() if keep.drawEmpty0 then ZeD.Molecules.drawEmptyLine = keep.drawEmpty0 end end)

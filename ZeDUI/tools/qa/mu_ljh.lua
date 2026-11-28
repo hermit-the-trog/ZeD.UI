@@ -1379,9 +1379,11 @@ function X.joinFakes()
             check(sRem ~= nil and sRem.fn ~= nil and ((not relay) or sRelay ~= nil), "LJ36: the pad reaches Remember password (tick:remember; and Use Steam relay, tick:relay, on Steam) on the account form",
                 "remember " .. tostring(sRem and sRem.id) .. (relay and (", relay " .. tostring(sRelay and sRelay.id)) or ", relay not drawn (not Steam)"))
         end
-        local p = {}
-        pcall(function() p = w:accountProblems() end)
-        note("LJ37: a new account with an empty password is refused: \"" .. tostring(p.pwd) .. "\" (vanilla's form allows none, EA:248-257)")
+        -- LJ37 (the director's pick, Nov 27): an empty password is allowed, as the game's form allows it (EA:248-257)
+        local p, ok37 = nil, false
+        ok37 = pcall(function() p = w:accountProblems() end)
+        check(ok37 and type(p) == "table" and p.pwd == nil, "LJ37: a new account with an empty password has no password problem, as the game's form",
+            ok37 and ("the password problem \"" .. tostring(type(p) == "table" and p.pwd or p) .. "\"") or "accountProblems threw")
         pcall(function() w:closeForm() end)
     end))
     after(200, JN(function(w)
