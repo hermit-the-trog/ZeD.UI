@@ -1048,6 +1048,17 @@ function ZeD_MMOptions:render()
         for _, hh in ipairs(self._hits) do if hh.strip then keep[#keep + 1] = hh end end
         self._hits = keep
     end
+    -- (QA OP43, Nov 27 2026: Find is the game's own text box and takes its clicks itself, past the hit list: under a
+    -- question it is made read-only and kept unfocused, and given back when the question goes)
+    local lock = (self.confirm and optionsWin(self)) and true or false
+    local fe = self.find
+    if fe then
+        if lock and fe:isFocused() then fe:unfocus() end
+        if self._findLocked ~= lock then
+            self._findLocked = lock
+            if fe.setEditable then fe:setEditable(not lock) end
+        end
+    end
     ZeD_Window.render(self)
 end
 
