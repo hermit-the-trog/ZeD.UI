@@ -423,6 +423,27 @@ local function readPiece(win, e)
     end
 end
 
+-- The read of this piece is queued or running: the game's queue holds an action on its item (the read, or the
+-- move into the main inventory before it). (QA J32 / J43, the director's call, Nov 27 2026)
+local function readRunning(p, item)
+    if not (p and item and ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue) then return false end
+    local q = ISTimedActionQueue.getTimedActionQueue(p)
+    for _, a in ipairs((q and q.queue) or {}) do
+        if a and a.item == item then return true end
+    end
+    return false
+end
+-- The pad's B on Read: while the read started here runs, B stops it, as the game's B stops an action; with no
+-- read running B goes back to the list, as before.
+local function readCancel(win, e, back)
+    local p = win and win._playerObj
+    if readRunning(p, e and e.item) then
+        local ok = pcall(stopDoingActionThatCanBeCancelled, p)
+        if ok then return true end
+    end
+    return back()
+end
+
 -- a section head, not folding: the one section style (the small mono line of the fold heads, as Moodles, Fitness and
 -- the blocks under "No notebook on you", 20u, its line under it; punch list 175a, D6), no triangle as it does not
 -- fold; returns the y under it
@@ -516,7 +537,7 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
             -- reading is vanilla's action: light, time, then the words and the places
             local dark = p:tooDarkToRead()
             button(panel, win, "read", rx, ry, getText("ContextMenu_Read"), function() readPiece(win, e) end, "primary",
-                { disabled = dark, cancel = back, help = ZeD.tr("UI_ZeD_Papers_HelpRead") })
+                { disabled = dark, cancel = function() return readCancel(win, e, back) end, help = ZeD.tr("UI_ZeD_Papers_HelpRead") })
             ry = ry + T.buttonH + T.px(4)
             if dark then
                 -- why it is greyed: one NEEDS line

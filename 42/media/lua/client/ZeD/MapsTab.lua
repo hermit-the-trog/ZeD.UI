@@ -164,14 +164,28 @@ local function _editAllowed(ink)
 end
 
 -- The colour to mark with: the chosen one while its pen is at hand, else the
--- first colour that is (vanilla picks the first pen it finds the same way).
+-- first one at hand in the game's own order (ISWorldMapSymbols: a black pen,
+-- then a pencil, red, blue, green). (QA MP33, the director's call, Nov 27 2026:
+-- with no colour chosen ZeD took the pencil before the pen, its swatch order.)
+-- MAP_COLORS indices: 1 Pencil, 2 Pen, 3 Blue, 4 Red, 5 Green.
+local GAME_INK_ORDER = { 2, 1, 4, 3, 5 }
 local function _inkColor(win, ink)
-    local c = win._mapActiveColor or 1
-    if ink.pen[c] then return c end
-    for i = 1, #MAP_COLORS do
-        if ink.pen[i] then win._mapActiveColor = i; return i end
+    local c = win._mapActiveColor
+    if c and ink.pen[c] then return c end
+    for _, i in ipairs(GAME_INK_ORDER) do
+        if i <= #MAP_COLORS and ink.pen[i] then win._mapActiveColor = i; return i end
     end
     return nil
+end
+-- the ink the toolbar shows as in use and the cursor previews: the chosen one, else the one a mark would
+-- take now (the game's order, as _inkColor), else the first swatch
+local function _inkShown(win)
+    if win._mapActiveColor then return win._mapActiveColor end
+    local ink = _mapInk(win._playerObj)
+    for _, i in ipairs(GAME_INK_ORDER) do
+        if i <= #MAP_COLORS and ink.pen[i] then return i end
+    end
+    return 1
 end
 
 -- the next colour round from cur that has its pen
@@ -1113,7 +1127,7 @@ function ZeD_WorldMap:renderToolCursor()
     if mx < 0 or my < 0 or mx > self:getWidth() or my > self:getHeight() then return end
     if win._mapEdit then return end   -- (rewording a note: the next click puts the words on it)
 
-    local c = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
+    local c = MAP_COLORS[_inkShown(win)] or MAP_COLORS[1]
     local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
     _previewMark(self, win._mapActiveTool, mx, my, c, 0.5, previewText)
 end
@@ -1160,7 +1174,7 @@ function ZeD_WorldMap:renderGamepadCursor()
     -- Tool preview at cursor when a tool is armed, so the user sees what
     -- A-press will place. Mirrors renderToolCursor's mouse-preview styling.
     if win._mapActiveTool and not win._mapEdit then
-        local c = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
+        local c = MAP_COLORS[_inkShown(win)] or MAP_COLORS[1]
         local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
         _previewMark(self, win._mapActiveTool, cx, cy, c, 0.5, previewText)
     end
@@ -1304,7 +1318,7 @@ local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
     panel:drawRect(sx, sy, sz, sz, a, c.r, c.g, c.b)
     -- (vanilla's inks are dark: the edge keeps each swatch apart from the toolbar)
     A.frame(panel, sx, sy, sz, sz, T.borderS, a)
-    if has and ci == (win._mapActiveColor or 1) then
+    if has and ci == (_inkShown(win)) then
         local u = T.hair
         A.frame(panel, sx - u, sy - u, sz + 2 * u, sz + 2 * u, T.text)
     end
@@ -1506,7 +1520,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     if _toolRowW(bs, btnGap, inkW, sGap, 0, nInk, false) > room then nInk = 0 end
     -- the inks shown: the first nInk, the last of them swapped for the ink in use when
     -- that one is further along
-    local inkUse = win._mapActiveColor or 1
+    local inkUse = _inkShown(win)
     local _, textWhy = _toolAllowed("text", ink)
 
     -- Row one: the disclosure, the pinned marks, the note, a line, the inks
@@ -2655,6 +2669,7 @@ function ZeD.MapsTab.closePopout(win, keepWorld)
     local pop = win and win._mapPopout
     if not pop then return end
     local paper = win._mapPaperItem ~= nil
+    local paperItem = win._mapPaperItem
     win._mapPopout = nil
     ZeD.MapsTab._openPops[win] = nil
     win._mapPaperItem = nil
@@ -2682,6 +2697,8 @@ function ZeD.MapsTab.closePopout(win, keepWorld)
         -- the paper closes with it (PaperMap.lua)
         pcall(function() win._playerObj:playSoundLocal("MapClose") end)
         if ZeD.PaperMap and ZeD.PaperMap.closed then pcall(ZeD.PaperMap.closed, win, pop, keepWorld) end
+        -- (Put things back on: the read's move back, held while the paper was up, goes now: ZeD_PutBack.lua)
+        if ZeD.PutBack and ZeD.PutBack.release then pcall(ZeD.PutBack.release, paperItem) end
         return
     end
     pcall(function() ZeD.uiSound("UIActivateTab") end)

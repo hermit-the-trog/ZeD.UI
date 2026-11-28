@@ -1674,11 +1674,24 @@ local function shutPageLists(win)
     end
 end
 
+-- The page picked is kept for the session, per player (QA J1, the director's call, Nov 27 2026): the
+-- Character window is made again on each open, so the page lives here and the new window starts on it
+-- (ZeD_CharacterWindow.toggle asks keptPage). A page gone since (an add-on's switched off) falls back to
+-- the log in render.
+ZeD.JournalTab._kept = ZeD.JournalTab._kept or {}
+function ZeD.JournalTab.keptPage(playerNum)
+    local idx = (ZeD.JournalTab._kept or {})[playerNum or 0]
+    if idx and SUB_TABS[idx] then return idx end
+    return 1
+end
+
 --- Open a page of the Journal (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 on an add-on's):
 -- the search fields clear, so a stale filter does not follow to another page.
 function ZeD.JournalTab.setPage(win, idx)
     if not (win and SUB_TABS[idx]) or win._journalSubTab == idx then return end
     win._journalSubTab = idx
+    ZeD.JournalTab._kept = ZeD.JournalTab._kept or {}
+    ZeD.JournalTab._kept[win.playerNum or 0] = idx
     if win._journalSearch then win._journalSearch:clear() end
     if win._jrecipeSearch then win._jrecipeSearch:clear() end
     if win._flyerSearch   then win._flyerSearch:clear() end

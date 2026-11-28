@@ -136,6 +136,24 @@ local function finish(run)
         for item in pairs(now) do if not run.before[item] and not run.moved[item] and not PB.incoming[item] then fresh[#fresh + 1] = item end end
         if #fresh >= 1 and #fresh <= 2 then for _, item in ipairs(fresh) do backs[#backs + 1] = { item, gone[1].src } end end
     end
+    -- An action whose thing stays out while it is used after the action ends: the game's Read Map ends with the
+    -- paper up (ISReadMapItem:showUI), and the window shuts when the map leaves the main inventory. It is marked
+    -- _zedBackLater (Overrides/PaperMap.lua) and its moves back wait until the paper is put away (PB.release).
+    -- (QA MP53 / J29, the director's call, Nov 27 2026: with Put things back on, a read map goes back where it
+    -- came from, like any other thing.)
+    local mainA = run.main
+    if mainA and mainA._zedBackLater and mainA.item and (#backs > 0 or run.equips) then
+        PB.held[mainA.item] = { run = run, backs = backs }
+        trace("  held until " .. tostring(mainA.item:getFullType()) .. " is put away")
+        return
+    end
+    PB.queueBacks(run, backs)
+end
+
+-- the moves back and the hands as they were, by the game's own actions
+function PB.queueBacks(run, backs)
+    local chr = run.chr
+    local main = chr:getInventory()
     PB.queuing = true
     local ok, err = pcall(function()
         local held = { chr:getPrimaryHandItem(), chr:getSecondaryHandItem() }
@@ -160,7 +178,21 @@ local function finish(run)
     PB.queuing = false
     if not ok then print("[ZeD] PutBack: " .. tostring(err)) end
     PB.last = { backs = #backs, equips = run.equips }   -- (the last run's result, for zedqa_put_back.lua)
-    trace("  " .. #backs .. " back, " .. #gone .. " used up")
+    trace("  " .. #backs .. " back")
+end
+
+-- runs whose moves back wait for a thing to be put away (an item -> { run, backs })
+PB.held = PB.held or {}
+--- The thing is put away (the paper map folded: MapsTab.closePopout): its run's moves back go now. A thing
+--- that has left the main inventory since is left where it is (the game's move checks it).
+function PB.release(item)
+    local h = item and PB.held[item]
+    if not h then return false end
+    PB.held[item] = nil
+    if not on() then return false end
+    local ok, err = pcall(PB.queueBacks, h.run, h.backs)
+    if not ok then print("[ZeD] PutBack: " .. tostring(err)) end
+    return ok
 end
 
 -- wraps the queue once: it runs at load and again at game boot, and the _zedPutBack flag on vanilla's table

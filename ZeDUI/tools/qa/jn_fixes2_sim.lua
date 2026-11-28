@@ -168,7 +168,7 @@ do
 end
 
 -- ---------------------------------------------------------------------------
--- J29: a notebook in a bag stays in the main inventory after the write (Put things back on)
+-- J29: a notebook in a bag goes back into it after the write (Put things back on: the director's call, Nov 27 2026)
 -- ---------------------------------------------------------------------------
 do
     stubGame()
@@ -193,8 +193,8 @@ do
     queues[w.p]:onCompleted(mv)
     queues[w.p]:onCompleted(wa)
     local back = 0
-    for _, a in ipairs(q) do if a.Type == "ISInventoryTransferAction" and a.item == w.book then back = back + 1 end end
-    check("J29 nothing moves the book back into the bag after the write", back == 0, back .. " moves back queued")
+    for _, a in ipairs(q) do if a.Type == "ISInventoryTransferAction" and a.item == w.book and a.destContainer == w.bag then back = back + 1 end end
+    check("J29 Put things back on: the book goes back into its bag after the write", back == 1, back .. " moves back queued")
     -- the control: a plain action with a move in its run is still put back (Put back itself unchanged)
     local w2 = world()
     ISTimedActionQueue.add(newTransfer(w2.p, w2.book, w2.bag, w2.main))
@@ -207,6 +207,25 @@ do
     local back2 = 0
     for _, a in ipairs(q2) do if a.Type == "ISInventoryTransferAction" and a.destContainer == w2.bag then back2 = back2 + 1 end end
     check("J29 control: Put back still returns another action's book", back2 == 1, back2)
+    -- MP53 (the director's call): an action marked _zedBackLater (the game's Read Map with ZeD's paper up) holds its
+    -- move back until the thing is put away (PB.release, from the paper's fold)
+    local w3 = world()
+    ISTimedActionQueue.add(newTransfer(w3.p, w3.book, w3.bag, w3.main))
+    local rd = { Type = "ISReadMapItem", character = w3.p, item = w3.book }
+    ISTimedActionQueue.add(rd)
+    local q3 = queues[w3.p].queue
+    w3.bag:remove(w3.book); w3.main:add(w3.book)
+    queues[w3.p]:onCompleted(table.remove(q3, 1))
+    rd._zedBackLater = true   -- (set by ISReadMapItem:showUI when ZeD's paper is up)
+    queues[w3.p]:onCompleted(rd)
+    local function backs3()
+        local n = 0
+        for _, a in ipairs(q3) do if a.Type == "ISInventoryTransferAction" and a.destContainer == w3.bag then n = n + 1 end end
+        return n
+    end
+    check("MP53 Put back holds the read map's move back while the paper is up", backs3() == 0, backs3())
+    check("MP53 ... the fold releases it: the map goes back where it came from", ZeD.PutBack.release(w3.book) == true and backs3() == 1, backs3())
+    check("MP53 ... once", ZeD.PutBack.release(w3.book) == false and backs3() == 1, backs3())
 end
 
 -- ---------------------------------------------------------------------------
