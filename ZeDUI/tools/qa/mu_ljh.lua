@@ -924,6 +924,27 @@ function X.invite()
         pcall(function() for _, e in ipairs(w._fields) do if e:isFocused() then e:unfocus() end end end)
         note("LJ54: [stub] A on a Connect to field asks " .. (rec[1] or "no keyboard (it focused the field)") .. "; the other menu fields open ZeD's pad keyboard (MM.typeIn)")
     end))
+    -- LJ35 (fix/menus2): the Connect to title masks ip : port under the list's Streamer tick (set in memory only)
+    after(250, V("srvform", "noInv", "LJ35", function(w)
+        keep.ct = { plain = tostring(w.title or "") }
+        local mp = K.ms() and K.ms().multiplayer
+        local tb = mp and mp.showIPAddressesTickBox
+        keep.ct.tb = tb
+        keep.ct.was = tb and tb.selected[1]
+        if tb then tb.selected[1] = true end
+    end))
+    after(250, V("srvform", "noInv", "LJ35", function(w)
+        local c = keep.ct
+        local masked = tostring(w.title or "")
+        if c.tb then c.tb.selected[1] = c.was end
+        if not c.tb then skip("LJ35: the Connect to title under Streamer mode", "no Streamer tick on the server list here"); return end
+        local opt = nil
+        pcall(function() opt = getCore():getOptionStreamerMode() end)
+        local plainHasPort = c.plain:find("16261", 1, true) ~= nil or opt == true
+        check(masked:find("*", 1, true) ~= nil and masked:find("16261", 1, true) == nil and masked:find("127.0.0.1", 1, true) == nil and plainHasPort,
+            "LJ35: with the Streamer tick on, Connect to's title masks the address and port (ip : port with it off)",
+            "on: \"" .. masked .. "\"; off: \"" .. c.plain .. "\"")
+    end))
     after(250, V("srvform", "noInv", "LJ3", function(w) K.try("LJ3: Connect to cancelled", function() w:cancel() end) end))
     waitFor(function() return keep.noInv or MM.view == "main" end, 3000, function(met)
         if keep.noInv then return end
