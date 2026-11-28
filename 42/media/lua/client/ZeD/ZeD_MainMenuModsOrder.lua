@@ -227,7 +227,8 @@ function ZeD_MMMods:orderAnswer(keep)
 end
 function ZeD_MMMods:orderKeepStrip(stripY, w, row)
     UI.stripSpecs(self, stripY, w, row, {}, {
-        { "confirm:no", getText("UI_btn_cancel"), function() self._orderGo = nil; self:setConfirm(false) end },
+        -- (QA, Nov 27 2026: the game's UI_btn_cancel is all capitals; buttons are sentence case)
+        { "confirm:no", ZeD.btnCase(getText("UI_btn_cancel")), function() self._orderGo = nil; self:setConfirm(false) end },
         { "confirm:discard", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:orderAnswer(false) end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") },
         { "confirm:yes", getText("ContextMenu_Keep"), function() self:orderAnswer(true) end, "primary" } },
         ZeD.tr("UI_ZeD_Order_AskKeep"))
