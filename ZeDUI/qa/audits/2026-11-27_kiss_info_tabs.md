@@ -90,6 +90,18 @@ These were test faults, not product bugs:
 ## Design calls for the director (asked Nov 27 2026)
 
 Option 1 is QA's pick in each.
+
+Hermit's picks (Nov 27 2026): "1(1); 2(2); 3(1); 4(1); 5(1); 6(1); 7(1); 8(2)".
+1. S3: the Skills key while paused opens the Character window. To build.
+2. The burger flipper keeps the permit. No change; the I6 note becomes a check.
+3. Survived for shows "--". Already built.
+4. B3: walk to the TV first, and be in the car for a car radio. To build (R6, R51).
+5. J1: the Journal keeps its page for the session. To build.
+6. J32: B stops the reading. To build.
+7. MP33: a pen before a pencil, the game's order. To build.
+8. Put things back sends a read map or a written notebook back to its bag. To build (this undoes the "stays on him" fixes for the notebook and the floor map's bag case).
+
+The calls as asked:
 1. **S3, the Skills key while paused:** it opens the Character window, as ZeD_PausedLook promises; or keep the game's rule and drop the promise.
 2. **The burger flipper's concealed carry permit** (IdentityTab.lua:45): remove it, or keep it.
 3. **Survived for on the license when the watch shows no date:** "--" (built), or drop the line.
