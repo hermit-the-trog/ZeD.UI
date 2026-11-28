@@ -173,11 +173,27 @@ end
 -- Done: laid out once more (your rules and pins), then kept; never while a row is red
 function ZeD_MMMods:orderDone()
     if self.page == "order" then
-        if self:orderCheck().firstBad then self:say(ZeD.tr("UI_ZeD_Mods_RuleFix")); MM.hoverSound(); return end
+        if self:orderCheck().firstBad then
+            -- (MO32, Nov 27 2026: Auto is offered only when Auto would clear the red rows; it never crosses a
+            -- separator, and a requirement not installed stays red, so there it cannot)
+            local key = self:orderAutoFixes() and "UI_ZeD_Mods_RuleFix" or "UI_ZeD_Mods_RuleFixHand"
+            self:say(ZeD.tr(key)); MM.hoverSound(); return
+        end
         self.order, self.oZone, self.oCarried, self.oSec = O.layout(self:orderSeq(), self.oInfo, self.oLo, false)
         self:orderChanged()
     end
     self:leaveOrder(true)
+end
+
+-- Auto, tried on copies: true when its order would have no red row (MO32, Nov 27 2026)
+function ZeD_MMMods:orderAutoFixes()
+    if self.page ~= "order" then return false end
+    local lo = O.copyLo(self.oLo)
+    local ok, fixed = pcall(function()
+        local order, zone = O.layout(self:orderSeq(), self.oInfo, lo, true)
+        return not O.check(order, self.oInfo or EMPTY, lo, zone).firstBad
+    end)
+    return ok and fixed and true or false
 end
 
 -- ----------------------------------------------------------------------------
@@ -668,7 +684,8 @@ local function rowHint(self, e, v, res)
     local m = model()
     for _, r in ipairs(I[e.id] and I[e.id].req or EMPTY) do
         local j = res.idx[r]
-        if not j then e.hint = ZeD.tr("UI_ZeD_Order_HintNeedsOff", O.nameOf(m, I, r)); break end
+        -- (MO43, Nov 27 2026: a requirement not installed says so; "(off)" is for one that is off)
+        if not j then e.hint = ZeD.tr((m and m.mods and m.mods[r]) and "UI_ZeD_Order_HintNeedsOff" or "UI_ZeD_Order_HintNeedsMissing", O.nameOf(m, I, r)); break end
         if j > e.i then e.hint = ZeD.tr("UI_ZeD_Order_HintNeedsAt", O.nameOf(m, I, r), j); break end
     end
     return e.hint
@@ -1030,7 +1047,7 @@ function ZeD_MMMods:ownRuleItems(items, rw, id, i, res)
         local j = res.idx[r]
         local nm = O.nameOf(m, I, r)
         n = n + 1
-        if not j then addText(items, rw, ZeD.tr("UI_ZeD_Order_DetNeedsOff", nm), T.danger)
+        if not j then addText(items, rw, ZeD.tr((m and m.mods and m.mods[r]) and "UI_ZeD_Order_DetNeedsOff" or "UI_ZeD_Order_DetNeedsMissing", nm), T.danger)   -- (MO43)
         elseif j > i then addText(items, rw, ZeD.tr("UI_ZeD_Order_DetNeedsLater", nm, j), T.danger)
         elseif self.oCarried[r] and self.oZone[r] == 1 and self.oZone[id] == 1 then addText(items, rw, ZeD.tr("UI_ZeD_Order_DetNeedsCarried", nm), T.positive)
         else addText(items, rw, ZeD.tr("UI_ZeD_Order_DetNeedsKept", nm, j), T.positive) end
